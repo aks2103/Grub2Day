@@ -9,6 +9,7 @@ interface FoodieMealCardProps {
   dayIndex: number;
   onMarkCooked: (isCooked: boolean) => void;
   onSwapClick: () => void;
+  onOpenHowToCook: (recipe: Recipe) => void;
   onToggleDiningOut?: (isDiningOut: boolean) => void;
 }
 
@@ -47,6 +48,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   dayIndex,
   onMarkCooked,
   onSwapClick,
+  onOpenHowToCook,
   onToggleDiningOut,
 }) => {
   const meta = SLOT_STYLES[slot];
@@ -173,23 +175,32 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
       </div>
 
       {/* Action Controls */}
-      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* How to Cook Button (opens recipe details & YouTube video link) */}
+          <button
+            onClick={() => onOpenHowToCook(recipe)}
+            className="h-9 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1 shadow-2xs"
+            title="View step-by-step instructions & YouTube recipe video"
+          >
+            <span>How to Cook 🍳</span>
+          </button>
+
           {/* Swap Button */}
           <button
             onClick={onSwapClick}
-            className="h-9 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 border border-orange-200/80 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+            className="h-9 px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 border border-orange-200/80 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs"
             title="Swap this dish — app automatically replans future days"
           >
             <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
-            <span>Swap Dish</span>
+            <span>Swap</span>
           </button>
 
           {/* Dinner Dining out toggle */}
           {slot === 'dinner' && onToggleDiningOut && (
             <button
               onClick={() => onToggleDiningOut(true)}
-              className="h-9 px-2.5 rounded-xl text-slate-600 hover:text-orange-700 active:scale-95 text-xs font-bold transition-colors flex items-center gap-1"
+              className="h-9 px-2 rounded-xl text-slate-600 hover:text-orange-700 active:scale-95 text-xs font-bold transition-colors flex items-center gap-1"
             >
               <UtensilsCrossed className="w-3.5 h-3.5 text-orange-500" />
               <span>Dining Out</span>

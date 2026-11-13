@@ -4,6 +4,7 @@ import { FoodieDateStrip } from './components/FoodieDateStrip';
 import { FoodieMealCard } from './components/FoodieMealCard';
 import { FoodieSwapSheet } from './components/FoodieSwapSheet';
 import { FoodiePantrySheet } from './components/FoodiePantrySheet';
+import { HowToCookModal } from './components/HowToCookModal';
 
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
@@ -26,9 +27,11 @@ export const App: React.FC = () => {
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Sheets
+  // Sheets & Modals
   const [pantrySheetOpen, setPantrySheetOpen] = useState(false);
   const [swapSheetOpen, setSwapSheetOpen] = useState(false);
+  const [howToCookOpen, setHowToCookOpen] = useState(false);
+  const [howToCookRecipe, setHowToCookRecipe] = useState<Recipe | null>(null);
   const [swapTarget, setSwapTarget] = useState<{ dayIndex: number; slot: MealSlot }>({
     dayIndex: 0,
     slot: 'lunch',
@@ -246,6 +249,7 @@ export const App: React.FC = () => {
             dayIndex={selectedDayIndex}
             onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked)}
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
+            onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
           />
 
           <FoodieMealCard
@@ -255,6 +259,7 @@ export const App: React.FC = () => {
             dayIndex={selectedDayIndex}
             onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked)}
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
+            onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
           />
 
           <FoodieMealCard
@@ -264,10 +269,18 @@ export const App: React.FC = () => {
             dayIndex={selectedDayIndex}
             onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked)}
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'dinner')}
+            onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
             onToggleDiningOut={(isOut) => handleToggleDiningOut(selectedDayIndex, isOut)}
           />
         </div>
       </main>
+
+      {/* How to Cook Modal (Step-by-step instructions + YouTube App Deep Link) */}
+      <HowToCookModal
+        isOpen={howToCookOpen}
+        onClose={() => setHowToCookOpen(false)}
+        recipe={howToCookRecipe}
+      />
 
       {/* Foodie Bottom Sheet: Swap */}
       <FoodieSwapSheet

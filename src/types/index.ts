@@ -31,6 +31,9 @@ export interface Recipe {
   kidFriendlyTip: string; // How to make it toddler friendly before adding heavy masala
   husbandProteinBooster: string; // Easy zero-cook or 2-min add-on to hit 30g+ protein
   addedProteinGrams: number; // Extra protein from booster
+  cookingSteps?: string[]; // Step-by-step simple cooking method
+  ingredientDetails?: string[]; // Ingredients with quantities
+  youtubeQuery?: string; // YouTube search query or link (opens in YT app)
   isCustom?: boolean;
 }
 
