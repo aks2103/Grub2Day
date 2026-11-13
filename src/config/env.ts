@@ -8,6 +8,9 @@ export const APP_CONFIG = {
   
   // Database type: 'local' (IndexedDB/LocalStorage NoSQL) or 'firestore'
   dbType: (import.meta.env.VITE_DB_TYPE as 'local' | 'firestore') || 'local',
+
+  // Google Gemini AI API Key
+  geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || "",
   
   // Profile targets for 36M, 78kg, 180cm (Recomposition)
   husbandName: import.meta.env.VITE_HUSBAND_NAME || "Alok",
