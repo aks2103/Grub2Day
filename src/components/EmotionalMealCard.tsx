@@ -112,6 +112,14 @@ export const EmotionalMealCard: React.FC<EmotionalMealCardProps> = ({
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                 {slot}
               </span>
+              {recipe.region && (
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 uppercase">
+                  {recipe.region === 'north' && '🏔️ North'}
+                  {recipe.region === 'south' && '🌴 South'}
+                  {recipe.region === 'west' && '🌊 West'}
+                  {recipe.region === 'east' && '🌾 East'}
+                </span>
+              )}
               {insight?.emotionalTag && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/60">
                   {insight.emotionalTag}

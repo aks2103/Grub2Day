@@ -14,10 +14,13 @@ export type DishCategory =
   | 'desi_breakfast' 
   | 'quick_breakfast';
 
+export type IndianRegion = 'north' | 'south' | 'east' | 'west';
+
 export interface Recipe {
   id: string;
   name: string;
   hindiName?: string;
+  region?: IndianRegion;
   category: DishCategory;
   suitableSlots: MealSlot[];
   prepTimeMinutes: number;

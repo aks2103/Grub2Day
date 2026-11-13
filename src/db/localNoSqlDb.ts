@@ -19,10 +19,19 @@ export class LocalNoSqlDb implements IDatabaseProvider {
   private listeners: Set<(event: { collection: string; id: string }) => void> = new Set();
 
   async init(): Promise<void> {
-    // 1. Seed recipes if not present
+    // 1. Seed & update recipes with Pan-Indian library (North, South, East, West)
     const existingRecipesRaw = localStorage.getItem(STORAGE_KEYS.RECIPES);
     if (!existingRecipesRaw) {
       localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(SEED_RECIPES));
+    } else {
+      try {
+        const stored: Recipe[] = JSON.parse(existingRecipesRaw);
+        const customRecipes = stored.filter(r => r.isCustom);
+        const merged = [...SEED_RECIPES, ...customRecipes];
+        localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(merged));
+      } catch {
+        localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(SEED_RECIPES));
+      }
     }
 
     // 2. Initialize default pantry if not present

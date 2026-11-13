@@ -23,16 +23,23 @@ export const SwapModal: React.FC<SwapModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<'all' | 'north' | 'south' | 'west' | 'east'>('all');
 
   if (!isOpen) return null;
 
-  const displayList = showAll || searchQuery.trim() !== ''
-    ? allAvailableRecipes.filter(r => 
-        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (r.hindiName && r.hindiName.includes(searchQuery)) ||
-        r.mainIngredients.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : options;
+  const baseList = showAll || searchQuery.trim() !== '' ? allAvailableRecipes : options;
+
+  const displayList = baseList.filter(r => {
+    const matchesSearch = 
+      searchQuery.trim() === '' ||
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.hindiName && r.hindiName.includes(searchQuery)) ||
+      r.mainIngredients.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesRegion = regionFilter === 'all' || r.region === regionFilter;
+
+    return matchesSearch && matchesRegion;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -75,6 +82,32 @@ export const SwapModal: React.FC<SwapModalProps> = ({
           </button>
         </div>
 
+        {/* Region Filter Chips */}
+        <div className="px-3 pt-2.5 pb-1 bg-white border-b border-slate-100 flex gap-1.5 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'all', label: 'All India' },
+            { id: 'north', label: '🏔️ North' },
+            { id: 'south', label: '🌴 South' },
+            { id: 'west', label: '🌊 West' },
+            { id: 'east', label: '🌾 East' },
+          ].map(reg => (
+            <button
+              key={reg.id}
+              onClick={() => {
+                setRegionFilter(reg.id as any);
+                if (!showAll && reg.id !== 'all') setShowAll(true);
+              }}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-colors border ${
+                regionFilter === reg.id
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              {reg.label}
+            </button>
+          ))}
+        </div>
+
         {/* Search bar */}
         <div className="p-3 border-b border-slate-100 bg-white">
           <div className="relative">
@@ -106,10 +139,18 @@ export const SwapModal: React.FC<SwapModalProps> = ({
                 className="p-3.5 rounded-2xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/30 transition-all cursor-pointer flex items-center justify-between group"
               >
                 <div className="flex-1 pr-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <h4 className="text-sm font-bold text-slate-900 group-hover:text-amber-700">
                       {recipe.name}
                     </h4>
+                    {recipe.region && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 uppercase">
+                        {recipe.region === 'north' && 'North'}
+                        {recipe.region === 'south' && 'South'}
+                        {recipe.region === 'west' && 'West'}
+                        {recipe.region === 'east' && 'East'}
+                      </span>
+                    )}
                     {recipe.hindiName && (
                       <span className="text-[11px] text-slate-500 font-medium">
                         ({recipe.hindiName})
