@@ -174,13 +174,14 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
         </div>
       </div>
 
-      {/* Action Controls */}
-      <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Action Controls - Structured Mobile Grid (Never Wraps Awkwardly) */}
+      <div className="pt-2.5 border-t border-slate-100 space-y-2">
+        {/* Row 1: How to Cook + Swap (50/50 Balanced Grid) */}
+        <div className="grid grid-cols-2 gap-2">
           {/* How to Cook Button (opens recipe details & YouTube video link) */}
           <button
             onClick={() => onOpenHowToCook(recipe)}
-            className="h-9 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1 shadow-2xs"
+            className="h-10 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-2xs"
             title="View step-by-step instructions & YouTube recipe video"
           >
             <span>How to Cook 🍳</span>
@@ -189,38 +190,40 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
           {/* Swap Button */}
           <button
             onClick={onSwapClick}
-            className="h-9 px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 border border-orange-200/80 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs"
+            className="h-10 px-3 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 border border-orange-200/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
             title="Swap this dish — app automatically replans future days"
           >
             <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
-            <span>Swap</span>
+            <span>Swap Dish</span>
           </button>
-
-          {/* Dinner Dining out toggle */}
-          {slot === 'dinner' && onToggleDiningOut && (
-            <button
-              onClick={() => onToggleDiningOut(true)}
-              className="h-9 px-2 rounded-xl text-slate-600 hover:text-orange-700 active:scale-95 text-xs font-bold transition-colors flex items-center gap-1"
-            >
-              <UtensilsCrossed className="w-3.5 h-3.5 text-orange-500" />
-              <span>Dining Out</span>
-            </button>
-          )}
         </div>
 
-        {/* Cooked Button (active for Today) */}
+        {/* Row 2: Cooked Button (Full width hero button for Today) */}
         {dayIndex === 0 && (
           <button
             onClick={() => onMarkCooked(!isCooked)}
-            className={`h-9 px-4 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 shadow-xs ${
+            className={`w-full h-10 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-xs ${
               isCooked
                 ? 'bg-emerald-600 text-white shadow-emerald-500/20'
                 : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-orange-500/20'
             }`}
           >
-            <Check className="w-3.5 h-3.5" />
-            <span>{isCooked ? 'Cooked ✓' : 'Cooked This!'}</span>
+            <Check className="w-4 h-4" />
+            <span>{isCooked ? 'Marked as Cooked ✓' : 'Cooked This!'}</span>
           </button>
+        )}
+
+        {/* Dinner Dining out toggle (Clean subtle centered bar) */}
+        {slot === 'dinner' && onToggleDiningOut && (
+          <div className="text-center pt-0.5">
+            <button
+              onClick={() => onToggleDiningOut(true)}
+              className="text-[11px] font-bold text-slate-500 hover:text-orange-700 active:scale-95 transition-colors inline-flex items-center gap-1 px-2 py-0.5"
+            >
+              <UtensilsCrossed className="w-3 h-3 text-orange-500" />
+              <span>Having non-veg outside? Tap for Dining Out</span>
+            </button>
+          </div>
         )}
       </div>
     </div>
