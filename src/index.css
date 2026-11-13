@@ -3,21 +3,49 @@
 @tailwind utilities;
 
 @layer base {
-  html, body {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  html {
+    background-color: #ffffff;
+    -webkit-text-size-adjust: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  body {
     background-color: #ffffff !important;
     margin: 0;
     padding: 0;
+    color: #1c1c1e;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    overscroll-behavior-y: none;
+  }
+
+  input, textarea, select {
+    user-select: text;
+    -webkit-user-select: text;
   }
 }
 
-/* Custom scrollbar hiding for horizontal chip carousels */
+/* iOS native smooth scrollbar hiding */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Touch feedback for iOS feel */
+.ios-press:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
 }
