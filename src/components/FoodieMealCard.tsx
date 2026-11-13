@@ -12,6 +12,9 @@ interface FoodieMealCardProps {
   onOpenHowToCook: (recipe: Recipe) => void;
   onToggleCraving?: (isCraving: boolean) => void;
   onToggleDiningOut?: (isDiningOut: boolean) => void;
+  wifePhone?: string;
+  showWhatsAppShare?: boolean;
+  onUpdateWifePhone?: (phone: string) => void;
 }
 
 const SLOT_STYLES: Record<MealSlot, { title: string; emoji: string; accent: string; badge: string }> = {
@@ -52,18 +55,41 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   onOpenHowToCook,
   onToggleCraving,
   onToggleDiningOut,
+  wifePhone,
+  showWhatsAppShare = true,
+  onUpdateWifePhone,
 }) => {
   const meta = SLOT_STYLES[slot];
 
   const handleShareWithWife = () => {
     if (!recipe) return;
+    let targetPhone = wifePhone || localStorage.getItem('wife_whatsapp_phone') || '';
+    if (!targetPhone) {
+      const entered = window.prompt(
+        "Enter your wife's 10-digit mobile number for 1-tap direct WhatsApp:\n(e.g. 9876543210)\n\nTip: You can hide the WhatsApp button anytime in Pantry (🧊) settings.",
+        ""
+      );
+      if (!entered || !entered.trim()) {
+        return;
+      }
+      let cleaned = entered.replace(/\D/g, '');
+      if (cleaned.length === 10) {
+        cleaned = '91' + cleaned;
+      }
+      localStorage.setItem('wife_whatsapp_phone', cleaned);
+      targetPhone = cleaned;
+      if (onUpdateWifePhone) {
+        onUpdateWifePhone(cleaned);
+      }
+    }
+
     const mealName = recipe.hindiName ? `${recipe.name} (${recipe.hindiName})` : recipe.name;
     const slotTitle = meta.title.split('(')[0].trim();
     const appUrl = window.location.origin;
     const text = encodeURIComponent(
       `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️\n\nAlok's Protein add-on: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
     );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
   };
 
   // Dining Out Card
@@ -187,30 +213,47 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
         </div>
       </div>
 
-      {/* Craving & Wife Notification Bar (1-Tap Share & Visual Banner) */}
-      <div className="bg-gradient-to-r from-rose-50/80 to-amber-50/80 rounded-xl p-2.5 border border-rose-200/70 mb-3 flex items-center justify-between gap-2">
-        <button
-          onClick={() => onToggleCraving && onToggleCraving(!entry.isHusbandCraving)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 ${
-            entry.isHusbandCraving
-              ? 'bg-rose-500 text-white shadow-xs'
-              : 'bg-white hover:bg-rose-100 text-rose-700 border border-rose-200'
-          }`}
-          title="Mark this as your craving today"
-        >
-          <Heart className={`w-3.5 h-3.5 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
-          <span>{entry.isHusbandCraving ? "Alok's Craving ❤️" : 'Craving this?'}</span>
-        </button>
+      {/* Craving & Wife Notification Bar (Direct WhatsApp or Clean Craving-Only) */}
+      {showWhatsAppShare ? (
+        <div className="bg-gradient-to-r from-rose-50/80 to-amber-50/80 rounded-xl p-2 border border-rose-200/70 mb-3 flex items-center justify-between gap-2">
+          <button
+            onClick={() => onToggleCraving && onToggleCraving(!entry.isHusbandCraving)}
+            className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+              entry.isHusbandCraving
+                ? 'bg-rose-500 text-white shadow-xs'
+                : 'bg-white hover:bg-rose-100 text-rose-700 border border-rose-200'
+            }`}
+            title="Mark this as your craving today"
+          >
+            <Heart className={`w-3.5 h-3.5 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
+            <span className="truncate">{entry.isHusbandCraving ? "Alok's Craving ❤️" : 'Craving this?'}</span>
+          </button>
 
-        <button
-          onClick={handleShareWithWife}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition-all shadow-2xs"
-          title="Send instant WhatsApp message to Wifey"
-        >
-          <MessageCircle className="w-3.5 h-3.5" />
-          <span>Tell Wifey 💬</span>
-        </button>
-      </div>
+          <button
+            onClick={handleShareWithWife}
+            className="flex-1 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5"
+            title="Send direct WhatsApp message straight to Wife's chat"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="truncate">Tell Wifey 💬</span>
+          </button>
+        </div>
+      ) : (
+        <div className="mb-3">
+          <button
+            onClick={() => onToggleCraving && onToggleCraving(!entry.isHusbandCraving)}
+            className={`w-full py-2.5 px-3 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-2 ${
+              entry.isHusbandCraving
+                ? 'bg-rose-500 text-white shadow-xs ring-2 ring-rose-200'
+                : 'bg-rose-50/70 hover:bg-rose-100 text-rose-700 border border-rose-200/80'
+            }`}
+            title="Mark this as your craving today"
+          >
+            <Heart className={`w-4 h-4 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
+            <span>{entry.isHusbandCraving ? "Alok is Craving This Today ❤️" : 'Craving this dish today?'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Action Controls - Structured Mobile Grid (Never Wraps Awkwardly) */}
       <div className="pt-2.5 border-t border-slate-100 space-y-2">

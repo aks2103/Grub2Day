@@ -39,6 +39,29 @@ export const App: React.FC = () => {
   const [swapOptions, setSwapOptions] = useState<Recipe[]>([]);
   const [allSlotRecipes, setAllSlotRecipes] = useState<Recipe[]>([]);
 
+  // Wife Notification & Craving Preferences
+  const [wifePhone, setWifePhone] = useState<string>(() => localStorage.getItem('wife_whatsapp_phone') || '');
+  const [showWhatsAppShare, setShowWhatsAppShare] = useState<boolean>(() => {
+    const saved = localStorage.getItem('show_whatsapp_share');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const handleUpdateWifePhone = (phone: string) => {
+    setWifePhone(phone);
+    localStorage.setItem('wife_whatsapp_phone', phone);
+    showToast("📱 Wife's WhatsApp number saved!");
+  };
+
+  const handleToggleWhatsAppShare = (show: boolean) => {
+    setShowWhatsAppShare(show);
+    localStorage.setItem('show_whatsapp_share', String(show));
+    if (show) {
+      showToast("💬 WhatsApp sharing enabled");
+    } else {
+      showToast("❤️ WhatsApp removed. Pure Craving mode active!");
+    }
+  };
+
   const recipesMap = useMemo(() => {
     const map = new Map<string, Recipe>();
     recipes.forEach(r => map.set(r.id, r));
@@ -267,6 +290,9 @@ export const App: React.FC = () => {
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
             onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
             onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'breakfast', isCraving)}
+            wifePhone={wifePhone}
+            showWhatsAppShare={showWhatsAppShare}
+            onUpdateWifePhone={handleUpdateWifePhone}
           />
 
           <FoodieMealCard
@@ -278,6 +304,9 @@ export const App: React.FC = () => {
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
             onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
             onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'lunch', isCraving)}
+            wifePhone={wifePhone}
+            showWhatsAppShare={showWhatsAppShare}
+            onUpdateWifePhone={handleUpdateWifePhone}
           />
 
           <FoodieMealCard
@@ -290,6 +319,9 @@ export const App: React.FC = () => {
             onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
             onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'dinner', isCraving)}
             onToggleDiningOut={(isOut) => handleToggleDiningOut(selectedDayIndex, isOut)}
+            wifePhone={wifePhone}
+            showWhatsAppShare={showWhatsAppShare}
+            onUpdateWifePhone={handleUpdateWifePhone}
           />
         </div>
       </main>
@@ -323,6 +355,10 @@ export const App: React.FC = () => {
         pantry={pantry}
         onUpdatePantry={handleUpdatePantry}
         onApply={handleFullReplan}
+        wifePhone={wifePhone}
+        onUpdateWifePhone={handleUpdateWifePhone}
+        showWhatsAppShare={showWhatsAppShare}
+        onToggleWhatsAppShare={handleToggleWhatsAppShare}
       />
     </div>
   );
