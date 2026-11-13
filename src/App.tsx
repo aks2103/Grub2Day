@@ -141,6 +141,22 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleToggleCraving = async (dayIndex: number, slot: MealSlot, isHusbandCraving: boolean) => {
+    if (!db || !sixDayPlans[dayIndex]) return;
+    const targetPlan = sixDayPlans[dayIndex];
+    const updated = await updateMealSlot(db, targetPlan.date, slot, { isHusbandCraving });
+
+    const updatedPlans = [...sixDayPlans];
+    updatedPlans[dayIndex] = updated;
+    setSixDayPlans(updatedPlans);
+
+    if (isHusbandCraving) {
+      showToast("❤️ Marked as your craving for today!");
+    } else {
+      showToast("Craving cleared");
+    }
+  };
+
   const handleToggleDiningOut = async (dayIndex: number, isDiningOut: boolean) => {
     if (!db || !sixDayPlans[dayIndex]) return;
     const targetPlan = sixDayPlans[dayIndex];
@@ -250,6 +266,7 @@ export const App: React.FC = () => {
             onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked)}
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
             onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+            onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'breakfast', isCraving)}
           />
 
           <FoodieMealCard
@@ -260,6 +277,7 @@ export const App: React.FC = () => {
             onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked)}
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
             onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+            onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'lunch', isCraving)}
           />
 
           <FoodieMealCard
@@ -270,6 +288,7 @@ export const App: React.FC = () => {
             onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked)}
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'dinner')}
             onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+            onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'dinner', isCraving)}
             onToggleDiningOut={(isOut) => handleToggleDiningOut(selectedDayIndex, isOut)}
           />
         </div>

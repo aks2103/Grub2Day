@@ -44,6 +44,7 @@ export interface MealSlotEntry {
   isDiningOut?: boolean;
   diningOutNotes?: string;
   husbandHadProteinBooster?: boolean;
+  isHusbandCraving?: boolean; // Flagged when Alok specifically wants this dish
   notes?: string;
 }
 

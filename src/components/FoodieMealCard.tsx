@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, RotateCcw, UtensilsCrossed, Clock, Dumbbell, Sparkles } from 'lucide-react';
+import { Check, RotateCcw, UtensilsCrossed, Clock, Dumbbell, Sparkles, Heart, MessageCircle } from 'lucide-react';
 import { MealSlot, Recipe, MealSlotEntry } from '../types';
 
 interface FoodieMealCardProps {
@@ -10,6 +10,7 @@ interface FoodieMealCardProps {
   onMarkCooked: (isCooked: boolean) => void;
   onSwapClick: () => void;
   onOpenHowToCook: (recipe: Recipe) => void;
+  onToggleCraving?: (isCraving: boolean) => void;
   onToggleDiningOut?: (isDiningOut: boolean) => void;
 }
 
@@ -49,9 +50,21 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   onMarkCooked,
   onSwapClick,
   onOpenHowToCook,
+  onToggleCraving,
   onToggleDiningOut,
 }) => {
   const meta = SLOT_STYLES[slot];
+
+  const handleShareWithWife = () => {
+    if (!recipe) return;
+    const mealName = recipe.hindiName ? `${recipe.name} (${recipe.hindiName})` : recipe.name;
+    const slotTitle = meta.title.split('(')[0].trim();
+    const appUrl = window.location.origin;
+    const text = encodeURIComponent(
+      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️\n\nAlok's Protein add-on: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
 
   // Dining Out Card
   if (entry.isDiningOut) {
@@ -160,7 +173,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
       </p>
 
       {/* Family Swaad & Prep Note (Warm, Human, Kid & Protein Friendly) */}
-      <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200/60 mb-3.5 space-y-1.5 text-xs">
+      <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200/60 mb-2.5 space-y-1.5 text-xs">
         <div className="flex items-start gap-1.5 leading-relaxed text-amber-950">
           <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
@@ -172,6 +185,31 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
           <span className="font-bold text-slate-900 flex-shrink-0">Alok's Protein: </span>
           <span className="text-slate-700">{recipe.husbandProteinBooster}</span>
         </div>
+      </div>
+
+      {/* Craving & Wife Notification Bar (1-Tap Share & Visual Banner) */}
+      <div className="bg-gradient-to-r from-rose-50/80 to-amber-50/80 rounded-xl p-2.5 border border-rose-200/70 mb-3 flex items-center justify-between gap-2">
+        <button
+          onClick={() => onToggleCraving && onToggleCraving(!entry.isHusbandCraving)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 ${
+            entry.isHusbandCraving
+              ? 'bg-rose-500 text-white shadow-xs'
+              : 'bg-white hover:bg-rose-100 text-rose-700 border border-rose-200'
+          }`}
+          title="Mark this as your craving today"
+        >
+          <Heart className={`w-3.5 h-3.5 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
+          <span>{entry.isHusbandCraving ? "Alok's Craving ❤️" : 'Craving this?'}</span>
+        </button>
+
+        <button
+          onClick={handleShareWithWife}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition-all shadow-2xs"
+          title="Send instant WhatsApp message to Wifey"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          <span>Tell Wifey 💬</span>
+        </button>
       </div>
 
       {/* Action Controls - Structured Mobile Grid (Never Wraps Awkwardly) */}
