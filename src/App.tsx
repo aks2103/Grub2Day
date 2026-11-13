@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { IOSHeader } from './components/iOSHeader';
-import { IOSDateStrip } from './components/iOSDateStrip';
-import { IOSMealCard } from './components/iOSMealCard';
-import { IOSSwapSheet } from './components/iOSSwapSheet';
-import { IOSPantrySheet } from './components/iOSPantrySheet';
+import { FoodieHeader } from './components/FoodieHeader';
+import { FoodieDateStrip } from './components/FoodieDateStrip';
+import { FoodieMealCard } from './components/FoodieMealCard';
+import { FoodieSwapSheet } from './components/FoodieSwapSheet';
+import { FoodiePantrySheet } from './components/FoodiePantrySheet';
 
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
@@ -12,6 +12,7 @@ import { getRollingSixDayPlans, cascadeReplanFutureDays } from './services/rolli
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { APP_CONFIG } from './config/env';
+import { Sparkles, Heart } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [db, setDb] = useState<IDatabaseProvider | null>(null);
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
   const [sixDayPlans, setSixDayPlans] = useState<DayMealPlan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Sheets
   const [pantrySheetOpen, setPantrySheetOpen] = useState(false);
@@ -39,6 +41,11 @@ export const App: React.FC = () => {
     recipes.forEach(r => map.set(r.id, r));
     return map;
   }, [recipes]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // 1. Initialize
   useEffect(() => {
@@ -70,7 +77,7 @@ export const App: React.FC = () => {
     const targetPlan = sixDayPlans[dayIndex];
     const currentRecipeId = targetPlan[slot].recipeId;
 
-    // Collect all recipe IDs currently scheduled anywhere in the 6-day cycle
+    // Strict Global Anti-Repetition: Collect all recipe IDs across the 6 days
     const cycleUsed = new Set<string>();
     sixDayPlans.forEach(p => {
       if (p.breakfast.recipeId) cycleUsed.add(p.breakfast.recipeId);
@@ -105,12 +112,15 @@ export const App: React.FC = () => {
 
     // Cascading replan: auto-replan future days to guarantee zero repetitions
     if (dayIndex < 5) {
+      showToast("✨ Dish swapped! Future days re-planned for 6-day freshness...");
       setIsReplanning(true);
       const refreshedPlans = await cascadeReplanFutureDays(db, updatedPlans, dayIndex, todayStr);
       setSixDayPlans(refreshedPlans);
       setIsReplanning(false);
+      showToast("✅ Next days re-planned! Zero repeats.");
     } else {
       setSixDayPlans(updatedPlans);
+      showToast("✅ Dish updated!");
     }
   };
 
@@ -122,6 +132,10 @@ export const App: React.FC = () => {
     const updatedPlans = [...sixDayPlans];
     updatedPlans[dayIndex] = updated;
     setSixDayPlans(updatedPlans);
+
+    if (isCooked) {
+      showToast("🍳 Cooked! 6-day cooldown active for this dish.");
+    }
   };
 
   const handleToggleDiningOut = async (dayIndex: number, isDiningOut: boolean) => {
@@ -135,14 +149,20 @@ export const App: React.FC = () => {
     const updatedPlans = [...sixDayPlans];
     updatedPlans[dayIndex] = updated;
     setSixDayPlans(updatedPlans);
+
+    if (isDiningOut) {
+      showToast("🍕 Dining Out tonight! Wife's kitchen is off.");
+    }
   };
 
   const handleFullReplan = async () => {
     if (!db) return;
     setIsReplanning(true);
+    showToast("Re-planning 6-day Pan-Indian menu...");
     const freshPlans = await cascadeReplanFutureDays(db, [null, null, null, null, null, null], -1, todayStr);
     setSixDayPlans(freshPlans);
     setIsReplanning(false);
+    showToast("✨ Fresh 6-day cycle ready! Balanced & delicious.");
   };
 
   const handleUpdatePantry = async (updatedPantry: PantryState) => {
@@ -154,17 +174,33 @@ export const App: React.FC = () => {
   if (isLoading || sixDayPlans.length === 0 || !pantry) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <p className="font-bold text-neutral-800 text-sm">Loading Grub2Day...</p>
+        <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-2xl animate-bounce mb-3 shadow-sm">
+          🍲
+        </div>
+        <p className="font-black text-slate-900 text-sm">Loading Grub2Day...</p>
+        <p className="text-xs text-amber-700 font-semibold mt-0.5">Ghar Ka Swaad, Zero Repeat</p>
       </div>
     );
   }
 
   const selectedPlan = sixDayPlans[selectedDayIndex] || sixDayPlans[0];
+  const selectedDateObj = new Date(selectedPlan.date);
+  const dayTitle = selectedDayIndex === 0
+    ? "Today's Family Meals"
+    : selectedDateObj.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 flex flex-col font-sans">
-      {/* iOS Header */}
-      <IOSHeader
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-orange-100">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-700 max-w-sm text-center animate-in fade-in slide-in-from-top-2">
+          <Sparkles className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Foodie Header */}
+      <FoodieHeader
         currentDateStr={todayStr}
         onOpenPantry={() => setPantrySheetOpen(true)}
         onReplanCycle={handleFullReplan}
@@ -172,17 +208,38 @@ export const App: React.FC = () => {
       />
 
       {/* Main Container tailored for iPhone 13 (max-w-md, px-4) */}
-      <main className="flex-1 max-w-md w-full mx-auto px-4 pb-[max(var(--sab),24px)] flex flex-col">
-        {/* iOS 6-Day Date Strip */}
-        <IOSDateStrip
+      <main className="flex-1 max-w-md w-full mx-auto px-4 pb-[max(var(--sab),28px)] flex flex-col">
+        {/* Foodie 6-Day Strip (Responsive for iPhone 13) */}
+        <FoodieDateStrip
           plans={sixDayPlans}
           selectedIndex={selectedDayIndex}
           onSelectIndex={setSelectedDayIndex}
+          recipesMap={recipesMap}
         />
 
-        {/* 3 Clean iOS Meal Cards */}
-        <div className="space-y-3 mt-1 flex-1">
-          <IOSMealCard
+        {/* Day Headline & Foodie Vibe */}
+        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-3 border border-orange-200/70 mb-3 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-orange-500 fill-orange-500/20 flex-shrink-0" />
+            <div>
+              <h2 className="font-black text-xs text-slate-900">
+                {dayTitle}
+              </h2>
+              <p className="text-[11px] font-semibold text-amber-800 leading-tight">
+                {selectedDayIndex === 0
+                  ? "Cooked with love, zero mental fatigue for your wife!"
+                  : `Day ${selectedDayIndex + 1} of 6 • Guaranteed zero duplicate dishes.`}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-orange-800 border border-orange-200 shadow-2xs flex-shrink-0">
+            {selectedDayIndex === 0 ? 'Today' : `+${selectedDayIndex}d`}
+          </span>
+        </div>
+
+        {/* 3 Foodie Meal Cards (Breakfast, Lunch, Dinner) */}
+        <div className="space-y-3.5 flex-1">
+          <FoodieMealCard
             slot="breakfast"
             entry={selectedPlan.breakfast}
             recipe={selectedPlan.breakfast.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null}
@@ -191,7 +248,7 @@ export const App: React.FC = () => {
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
           />
 
-          <IOSMealCard
+          <FoodieMealCard
             slot="lunch"
             entry={selectedPlan.lunch}
             recipe={selectedPlan.lunch.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null}
@@ -200,7 +257,7 @@ export const App: React.FC = () => {
             onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
           />
 
-          <IOSMealCard
+          <FoodieMealCard
             slot="dinner"
             entry={selectedPlan.dinner}
             recipe={selectedPlan.dinner.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null}
@@ -212,8 +269,8 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* iOS Bottom Sheet: Swap */}
-      <IOSSwapSheet
+      {/* Foodie Bottom Sheet: Swap */}
+      <FoodieSwapSheet
         isOpen={swapSheetOpen}
         onClose={() => setSwapSheetOpen(false)}
         slot={swapTarget.slot}
@@ -227,8 +284,8 @@ export const App: React.FC = () => {
         onSelectRecipe={handleSelectSwapRecipe}
       />
 
-      {/* iOS Bottom Sheet: Pantry */}
-      <IOSPantrySheet
+      {/* Foodie Bottom Sheet: Pantry */}
+      <FoodiePantrySheet
         isOpen={pantrySheetOpen}
         onClose={() => setPantrySheetOpen(false)}
         pantry={pantry}
