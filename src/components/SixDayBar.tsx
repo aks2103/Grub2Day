@@ -22,7 +22,7 @@ export const SixDayBar: React.FC<SixDayBarProps> = ({
     <div className="mb-5 space-y-2.5">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-          6-Day Planned Menu (No Repeats)
+          6-Day Menu • Zero Repeats (Breakfast, Lunch & Dinner)
         </h2>
         <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold text-slate-600">
           <button

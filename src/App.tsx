@@ -85,12 +85,22 @@ export const App: React.FC = () => {
     const targetPlan = sixDayPlans[dayIndex];
     const currentRecipeId = targetPlan[slot].recipeId;
 
-    const options = await getSwapOptions(db, targetPlan.date, slot, currentRecipeId);
+    // Collect all recipe IDs currently scheduled anywhere in the 6-day cycle (breakfast, lunch, dinner)
+    const cycleUsed = new Set<string>();
+    sixDayPlans.forEach(p => {
+      if (p.breakfast.recipeId) cycleUsed.add(p.breakfast.recipeId);
+      if (p.lunch.recipeId) cycleUsed.add(p.lunch.recipeId);
+      if (p.dinner.recipeId) cycleUsed.add(p.dinner.recipeId);
+    });
+    if (currentRecipeId) cycleUsed.delete(currentRecipeId);
+
+    const options = await getSwapOptions(db, targetPlan.date, slot, currentRecipeId, cycleUsed);
     setSwapOptions(options);
 
     const cooldownReport = await getActiveCooldownReport(db, APP_CONFIG.cooldownDays, targetPlan.date);
-    const available = filterAvailableRecipes(recipes, cooldownReport, slot);
-    setAllSlotRecipes(available);
+    const available = filterAvailableRecipes(recipes, cooldownReport, slot)
+      .filter(r => !cycleUsed.has(r.id) && r.id !== currentRecipeId);
+    setAllSlotRecipes(available.length > 0 ? available : filterAvailableRecipes(recipes, cooldownReport, slot));
 
     setSwapModalOpen(true);
   };

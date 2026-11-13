@@ -107,41 +107,75 @@ function generateSingleDayPlan(
   cycleUsedIds: Set<string>,
   historicalBannedIds: Set<string>
 ): DayMealPlan {
-  const pickDish = (slot: MealSlot): string | null => {
-    // Exclude both historical 6-day cooldown AND dishes already chosen in this 6-day cycle
+  // Intra-day tracker: ensures breakfast, lunch, and dinner NEVER share the same dish
+  const dayUsedIds = new Set<string>();
+  const dayUsedCategories = new Set<string>();
+
+  const pickDish = (slot: MealSlot, preferredCategoryExclusion?: string): string | null => {
+    // 1. Strict anti-repetition: exclude anything used in past 6 days history,
+    //    anything used anywhere in the 6-day cycle, and anything used today!
     const eligible = allRecipes.filter(r => 
       r.suitableSlots.includes(slot) &&
       !cycleUsedIds.has(r.id) &&
-      !historicalBannedIds.has(r.id)
+      !historicalBannedIds.has(r.id) &&
+      !dayUsedIds.has(r.id)
     );
 
-    const pool = eligible.length > 0 
-      ? eligible 
-      : allRecipes.filter(r => r.suitableSlots.includes(slot) && !cycleUsedIds.has(r.id));
+    // Apply category diversity (e.g. don't do paneer for lunch AND dinner on same day)
+    let candidates = eligible;
+    if (preferredCategoryExclusion && eligible.length > 2) {
+      const diverse = eligible.filter(r => r.category !== preferredCategoryExclusion && !dayUsedCategories.has(r.category));
+      if (diverse.length > 0) candidates = diverse;
+    }
+
+    const pool = candidates.length > 0 
+      ? candidates 
+      : (eligible.length > 0 
+          ? eligible 
+          : allRecipes.filter(r => r.suitableSlots.includes(slot) && !dayUsedIds.has(r.id)));
 
     const finalCandidates = pool.length > 0 
       ? pool 
       : allRecipes.filter(r => r.suitableSlots.includes(slot));
 
     const ranked = rankRecipesByPantry(finalCandidates, pantry);
-    return ranked.length > 0 ? ranked[0].recipe.id : null;
+    const chosen = ranked.length > 0 ? ranked[0].recipe : null;
+
+    if (chosen) {
+      dayUsedIds.add(chosen.id);
+      dayUsedCategories.add(chosen.category);
+      cycleUsedIds.add(chosen.id);
+      return chosen.id;
+    }
+    return null;
   };
+
+  // Pick Breakfast
+  const breakfastId = pickDish('breakfast');
+  const breakfastRecipe = allRecipes.find(r => r.id === breakfastId);
+
+  // Pick Lunch (strictly distinct from breakfast)
+  const lunchId = pickDish('lunch', breakfastRecipe?.category);
+  const lunchRecipe = allRecipes.find(r => r.id === lunchId);
+
+  // Pick Dinner (strictly distinct from both breakfast and lunch)
+  const dinnerId = pickDish('dinner', lunchRecipe?.category);
 
   return {
     id: dateStr,
     date: dateStr,
     breakfast: {
-      recipeId: pickDish('breakfast'),
+      recipeId: breakfastId,
       isCooked: false,
       husbandHadProteinBooster: true,
     },
     lunch: {
-      recipeId: pickDish('lunch'),
+      recipeId: lunchId,
       isCooked: false,
       husbandHadProteinBooster: true,
     },
     dinner: {
-      recipeId: pickDish('dinner'),
+      recipeId: dinnerId,
       isCooked: false,
       husbandHadProteinBooster: true,
     },

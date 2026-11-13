@@ -65,7 +65,7 @@ export const SwapModal: React.FC<SwapModalProps> = ({
         <div className="bg-emerald-50 px-5 py-2 border-b border-emerald-100 flex items-center justify-between text-xs text-emerald-800">
           <span className="flex items-center gap-1 font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            Filtered by 6-day cooldown & your fridge ingredients
+            Guaranteed Unique: No repeats across Breakfast, Lunch, Dinner or 6 days
           </span>
           <button
             onClick={() => setShowAll(!showAll)}

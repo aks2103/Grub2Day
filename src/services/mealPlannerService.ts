@@ -62,16 +62,22 @@ export async function getSwapOptions(
   db: IDatabaseProvider,
   dateStr: string,
   slot: MealSlot,
-  currentRecipeId?: string | null
+  currentRecipeId?: string | null,
+  cycleUsedIds?: Set<string>
 ): Promise<Recipe[]> {
   const allRecipes = await db.getAllRecipes();
   const pantry = await db.getPantry();
   const cooldownReport = await getActiveCooldownReport(db, 6, dateStr);
 
   const candidates = filterAvailableRecipes(allRecipes, cooldownReport, slot)
-    .filter(r => r.id !== currentRecipeId);
+    .filter(r => r.id !== currentRecipeId && (!cycleUsedIds || !cycleUsedIds.has(r.id)));
 
-  const ranked = rankRecipesByPantry(candidates, pantry);
+  // If strict filtering leaves fewer than 3, fallback to slot candidates not on cooldown
+  const pool = candidates.length >= 3 
+    ? candidates 
+    : filterAvailableRecipes(allRecipes, cooldownReport, slot).filter(r => r.id !== currentRecipeId);
+
+  const ranked = rankRecipesByPantry(pool, pantry);
   return ranked.slice(0, 5).map(r => r.recipe);
 }
 
