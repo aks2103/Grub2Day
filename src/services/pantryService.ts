@@ -210,8 +210,9 @@ export interface PantryMatchResult {
  * - An aloo recipe requires potato in stock.
  */
 export function hasRequiredCoreIngredients(recipe: Recipe, pantry: PantryState): boolean {
-  const veggies = new Set(pantry.availableVeggies.map(v => v.toLowerCase()));
-  const staples = new Set(pantry.staplesInStock.map(s => s.toLowerCase()));
+  if (!pantry) return true;
+  const veggies = new Set((pantry.availableVeggies || []).map(v => v.toLowerCase()));
+  const staples = new Set((pantry.staplesInStock || []).map(s => s.toLowerCase()));
 
   // 1. Dal recipes / Sambar / Lentil dishes: MUST have at least one dal/staple in stock!
   if (recipe.category === 'dal' || recipe.name.toLowerCase().includes('dal') || recipe.name.toLowerCase().includes('sambar')) {
@@ -270,8 +271,8 @@ export function rankRecipesByPantry(
   pantry: PantryState
 ): PantryMatchResult[] {
   const availableSet = new Set<string>([
-    ...pantry.availableVeggies.map(v => v.toLowerCase()),
-    ...pantry.staplesInStock.map(s => s.toLowerCase()),
+    ...(pantry?.availableVeggies || []).map(v => v.toLowerCase()),
+    ...(pantry?.staplesInStock || []).map(s => s.toLowerCase()),
     'ghee', 'oil', 'jeera', 'garlic', 'ginger', 'hing', 'turmeric', 
     'coriander', 'salt', 'lemon', 'bread', 'rice', 'milk' // Everyday pantry defaults
   ]);
@@ -413,9 +414,10 @@ export function getMissingIngredientsForRecipe(
   pantry: PantryState,
   language: 'en' | 'hi' = 'en'
 ): string[] {
+  if (!pantry) return [];
   const availableSet = new Set<string>([
-    ...pantry.availableVeggies.map(v => v.toLowerCase()),
-    ...pantry.staplesInStock.map(s => s.toLowerCase()),
+    ...(pantry?.availableVeggies || []).map(v => v.toLowerCase()),
+    ...(pantry?.staplesInStock || []).map(s => s.toLowerCase()),
     'ghee', 'oil', 'jeera', 'garlic', 'ginger', 'hing', 'turmeric', 
     'coriander', 'salt', 'lemon', 'bread', 'rice', 'milk'
   ]);

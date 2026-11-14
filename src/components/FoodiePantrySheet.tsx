@@ -39,18 +39,20 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
   onApply,
   language = 'en',
 }) => {
-  const [veggies, setVeggies] = useState<Set<string>>(new Set(pantry.availableVeggies));
-  const [staples, setStaples] = useState<Set<string>>(new Set(pantry.staplesInStock));
+  const [veggies, setVeggies] = useState<Set<string>>(() => new Set(pantry?.availableVeggies || []));
+  const [staples, setStaples] = useState<Set<string>>(() => new Set(pantry?.staplesInStock || []));
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [customItems, setCustomItems] = useState<PantryItemMeta[]>(() => getCustomPantryItems());
 
   const t = TRANSLATIONS[language];
 
-  // Sync state whenever pantry or sheet visibility changes
+  // Sync state whenever sheet opens or pantry prop updates
   useEffect(() => {
-    setVeggies(new Set(pantry.availableVeggies));
-    setStaples(new Set(pantry.staplesInStock));
+    if (!isOpen) return;
+    setVeggies(new Set(pantry?.availableVeggies || []));
+    setStaples(new Set(pantry?.staplesInStock || []));
     setCustomItems(getCustomPantryItems());
+    setSearchQuery('');
   }, [pantry, isOpen]);
 
   // Combined library of all known items (Standard Veggies + Standard Staples + Custom Labels)
@@ -101,8 +103,8 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
     });
   }, [searchQuery, allLibraryItems]);
 
-  // Handle adding an item to the fridge
-  const handleAddItem = async (item: PantryItemMeta) => {
+  // Handle adding an item locally to the fridge
+  const handleAddItem = (item: PantryItemMeta) => {
     const isStaple = STANDARD_STAPLES.some(s => s.id.toLowerCase() === item.id.toLowerCase()) || 
       item.label.toLowerCase().includes('dal') || 
       item.label.toLowerCase().includes('flour') || 
@@ -110,61 +112,44 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
       item.label.toLowerCase().includes('rice');
 
     if (isStaple) {
-      const next = new Set(staples);
-      next.add(item.id);
-      setStaples(next);
-      await onUpdatePantry({
-        ...pantry,
-        staplesInStock: Array.from(next),
-        lastUpdated: new Date().toISOString(),
+      setStaples(prev => {
+        const next = new Set(prev);
+        next.add(item.id);
+        return next;
       });
     } else {
-      const next = new Set(veggies);
-      next.add(item.id);
-      setVeggies(next);
-      await onUpdatePantry({
-        ...pantry,
-        availableVeggies: Array.from(next),
-        lastUpdated: new Date().toISOString(),
+      setVeggies(prev => {
+        const next = new Set(prev);
+        next.add(item.id);
+        return next;
       });
     }
 
     setSearchQuery('');
   };
 
-  // Handle removing an item from the fridge
-  const handleRemoveItem = async (id: string) => {
-    const nextVeg = new Set(veggies);
-    const nextStaple = new Set(staples);
-
-    if (nextVeg.has(id)) nextVeg.delete(id);
-    if (nextStaple.has(id)) nextStaple.delete(id);
-
-    setVeggies(nextVeg);
-    setStaples(nextStaple);
-
-    await onUpdatePantry({
-      ...pantry,
-      availableVeggies: Array.from(nextVeg),
-      staplesInStock: Array.from(nextStaple),
-      lastUpdated: new Date().toISOString(),
+  // Handle removing an item locally from the fridge
+  const handleRemoveItem = (id: string) => {
+    setVeggies(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setStaples(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
     });
   };
 
-  // Handle clearing all items
-  const handleClearAll = async () => {
+  // Handle clearing all items locally
+  const handleClearAll = () => {
     setVeggies(new Set());
     setStaples(new Set());
-    await onUpdatePantry({
-      ...pantry,
-      availableVeggies: [],
-      staplesInStock: [],
-      lastUpdated: new Date().toISOString(),
-    });
   };
 
   // Handle adding custom item typed by user
-  const handleAddCustom = async () => {
+  const handleAddCustom = () => {
     const query = searchQuery.trim();
     if (!query) return;
 
@@ -174,7 +159,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
     );
 
     if (existing) {
-      await handleAddItem(existing);
+      handleAddItem(existing);
       return;
     }
 
@@ -194,24 +179,18 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
     saveCustomPantryItem(newItem);
     setCustomItems(getCustomPantryItems());
 
-    // Add to current in-stock items
+    // Add to current in-stock items locally
     if (inferred.category === 'staple') {
-      const next = new Set(staples);
-      next.add(slug);
-      setStaples(next);
-      await onUpdatePantry({
-        ...pantry,
-        staplesInStock: Array.from(next),
-        lastUpdated: new Date().toISOString(),
+      setStaples(prev => {
+        const next = new Set(prev);
+        next.add(slug);
+        return next;
       });
     } else {
-      const next = new Set(veggies);
-      next.add(slug);
-      setVeggies(next);
-      await onUpdatePantry({
-        ...pantry,
-        availableVeggies: Array.from(next),
-        lastUpdated: new Date().toISOString(),
+      setVeggies(prev => {
+        const next = new Set(prev);
+        next.add(slug);
+        return next;
       });
     }
 
@@ -222,7 +201,8 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
 
   const handleApply = async () => {
     await onUpdatePantry({
-      ...pantry,
+      ...(pantry || {}),
+      id: 'current',
       availableVeggies: Array.from(veggies),
       staplesInStock: Array.from(staples),
       lastUpdated: new Date().toISOString(),

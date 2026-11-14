@@ -709,7 +709,7 @@ export const App: React.FC = () => {
       <FoodiePantrySheet
         isOpen={pantrySheetOpen}
         onClose={() => setPantrySheetOpen(false)}
-        pantry={pantry}
+        pantry={pantry || { id: 'current', availableVeggies: [], staplesInStock: [], lastUpdated: '' }}
         onUpdatePantry={handleUpdatePantry}
         onApply={handleApplyPantryUpdates}
         wifePhone={wifePhone}
