@@ -287,8 +287,8 @@ export const App: React.FC = () => {
         onOpenProfile={() => setOnboardingOpen(true)}
       />
 
-      {/* Main Container tailored for iPhone 13 (max-w-md, px-4) */}
-      <main className="flex-1 max-w-md w-full mx-auto px-4 pb-[max(var(--sab),28px)] flex flex-col">
+      {/* Main Container tailored for iPhone 13 (max-w-md, px-3) */}
+      <main className="flex-1 max-w-md w-full mx-auto px-3 pb-[max(var(--sab),28px)] flex flex-col">
         {/* Foodie 6-Day Strip (Responsive for iPhone 13) */}
         <FoodieDateStrip
           plans={sixDayPlans}
@@ -298,27 +298,27 @@ export const App: React.FC = () => {
         />
 
         {/* Day Headline & Foodie Vibe */}
-        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-3 border border-orange-200/70 mb-3 flex items-center justify-between shadow-2xs">
-          <div className="flex items-center gap-2">
+        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-2.5 border border-orange-200/70 mb-2.5 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
             <Heart className="w-4 h-4 text-orange-500 fill-orange-500/20 flex-shrink-0" />
-            <div>
-              <h2 className="font-black text-xs text-slate-900">
+            <div className="min-w-0">
+              <h2 className="font-black text-xs text-slate-900 truncate">
                 {dayTitle}
               </h2>
-              <p className="text-[11px] font-semibold text-amber-800 leading-tight">
+              <p className="text-[11px] font-semibold text-amber-800 leading-tight truncate">
                 {selectedDayIndex === 0
                   ? "Cooked with love, zero mental fatigue in the kitchen!"
                   : `Day ${selectedDayIndex + 1} of 6 • Guaranteed zero duplicate dishes.`}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-orange-800 border border-orange-200 shadow-2xs flex-shrink-0">
+          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-orange-800 border border-orange-200 shadow-2xs flex-shrink-0 ml-1.5">
             {selectedDayIndex === 0 ? 'Today' : `+${selectedDayIndex}d`}
           </span>
         </div>
 
         {/* 3 Foodie Meal Cards (Breakfast, Lunch, Dinner) */}
-        <div className="space-y-3.5 flex-1">
+        <div className="space-y-3 flex-1">
           <FoodieMealCard
             slot="breakfast"
             entry={selectedPlan.breakfast}

@@ -15,21 +15,21 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
   recipesMap,
 }) => {
   return (
-    <div className="py-3 max-w-md mx-auto">
-      {/* 6-Day Horizontal Foodie Strip */}
-      <div className="grid grid-cols-6 gap-1.5">
+    <div className="py-2.5 max-w-md mx-auto w-full">
+      {/* 6-Day Clean iOS Grid Strip */}
+      <div className="grid grid-cols-6 gap-1.5 w-full">
         {plans.map((dayPlan, idx) => {
           const dateObj = new Date(dayPlan.date);
           const isSelected = selectedIndex === idx;
           const isToday = idx === 0;
 
-          const dayName = isToday 
-            ? 'TODAY' 
-            : dateObj.toLocaleDateString('en-IN', { weekday: 'narrow' });
+          const dayLabel = isToday 
+            ? 'Today' 
+            : dateObj.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 3);
           const dateNum = dateObj.getDate();
 
           const lunchRecipe = dayPlan.lunch.recipeId ? recipesMap.get(dayPlan.lunch.recipeId) : null;
-          const dishSnippet = lunchRecipe ? lunchRecipe.name.split(' ')[0] : 'Meal';
+          const dishPreview = lunchRecipe ? lunchRecipe.name.split(' ')[0] : 'Meal';
 
           const allCooked = 
             dayPlan.breakfast.isCooked && 
@@ -40,35 +40,36 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
             <button
               key={dayPlan.date}
               onClick={() => onSelectIndex(idx)}
-              className={`py-2 px-1 rounded-2xl flex flex-col items-center justify-between transition-all ios-press border ${
+              className={`py-2 px-0.5 rounded-2xl flex flex-col items-center justify-between transition-all ios-press border ${
                 isSelected
-                  ? 'bg-gradient-to-b from-amber-500 to-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/25'
-                  : 'bg-orange-50/40 border-orange-200/50 hover:bg-orange-100/60 text-slate-700'
+                  ? 'bg-gradient-to-b from-amber-500 to-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/20'
+                  : 'bg-orange-50/50 border-orange-200/60 hover:bg-orange-100/60 text-slate-700'
               }`}
             >
-              <div className="flex flex-col items-center">
-                <span className={`text-[9px] font-extrabold tracking-tight ${
-                  isSelected ? 'text-amber-100' : 'text-amber-800/70'
-                }`}>
-                  {dayName}
-                </span>
-                <span className="text-base font-black tracking-tight mt-0.5 leading-none">
-                  {dateNum}
-                </span>
-              </div>
-
-              {/* Mini Food Preview Tag */}
-              <span className={`text-[8px] font-bold truncate max-w-full px-1 mt-1 ${
-                isSelected ? 'text-white/90' : 'text-slate-500'
+              {/* Day Label (e.g. Today, Sun, Mon) */}
+              <span className={`text-[10px] font-black uppercase tracking-tight leading-tight ${
+                isSelected ? 'text-amber-100' : 'text-amber-800'
               }`}>
-                {dishSnippet}
+                {dayLabel}
               </span>
 
-              {/* Cooked dot */}
+              {/* Date Number */}
+              <span className="text-base font-black tracking-tight my-0.5 leading-none">
+                {dateNum}
+              </span>
+
+              {/* Dish Preview Tag */}
+              <span className={`text-[9px] font-bold truncate max-w-[48px] px-0.5 leading-tight ${
+                isSelected ? 'text-white/95' : 'text-slate-500'
+              }`}>
+                {dishPreview}
+              </span>
+
+              {/* Cooked Status Indicator */}
               <span className={`w-1.5 h-1.5 rounded-full mt-1 ${
                 allCooked 
-                  ? 'bg-emerald-400 ring-2 ring-white/50' 
-                  : (isSelected ? 'bg-orange-400' : 'bg-transparent')
+                  ? 'bg-emerald-400 ring-2 ring-white/60' 
+                  : (isSelected ? 'bg-orange-200' : 'bg-transparent')
               }`} />
             </button>
           );
