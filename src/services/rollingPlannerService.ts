@@ -121,12 +121,13 @@ export async function cascadeReplanFutureDays(
 
 function pickDiverseTopRecipe(ranked: PantryMatchResult[]): Recipe | null {
   if (ranked.length === 0) return null;
-  const topFeasible = ranked[0].hasCoreIngredients;
-  const topScore = ranked[0].matchScore;
-  // Consider candidates matching the top tier to guarantee fresh, randomized dishes on shuffle
-  const topTier = ranked.filter(r => r.hasCoreIngredients === topFeasible && Math.abs(r.matchScore - topScore) < 0.25);
-  const randomChoice = topTier[Math.floor(Math.random() * topTier.length)];
-  return randomChoice ? randomChoice.recipe : ranked[0].recipe;
+  // If there are dishes matching core ingredients, prioritize top feasible candidates
+  const feasible = ranked.filter(r => r.hasCoreIngredients);
+  const pool = feasible.length > 0 ? feasible : ranked;
+  // Pick from the top candidates with randomized selection so every shuffle brings fresh meals
+  const topCandidates = pool.slice(0, Math.min(6, pool.length));
+  const picked = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+  return picked ? picked.recipe : ranked[0].recipe;
 }
 
 /**
@@ -306,7 +307,8 @@ function generateSingleDayPlan(
   pantry: any,
   cycleUsedIds: Set<string>,
   historicalBannedIds: Set<string>,
-  settings?: UserHouseholdSettings | null
+  settings?: UserHouseholdSettings | null,
+  avoidRecipeIds?: Set<string>
 ): DayMealPlan {
   // Intra-day tracker: ensures breakfast, lunch, and dinner NEVER share the same dish
   const dayUsedIds = new Set<string>();
@@ -317,15 +319,41 @@ function generateSingleDayPlan(
     ? new Set(settings.preferredRegions)
     : null;
 
-  const pickDish = (slot: MealSlot, preferredCategoryExclusion?: string): string | null => {
-    // 1. Strict anti-repetition: exclude anything used in past 6 days history,
-    //    anything used anywhere in the 6-day cycle, and anything used today!
-    const eligible = notDisliked.filter(r => 
+  const pickDish = (slot: MealSlot, preferredCategoryExclusion?: string): string => {
+    // 1. Strict anti-repetition: exclude cycleUsedIds, historicalBannedIds, dayUsedIds, and avoidRecipeIds (for lively shuffle)
+    let eligible = notDisliked.filter(r => 
       r.suitableSlots.includes(slot) &&
       !cycleUsedIds.has(r.id) &&
       !historicalBannedIds.has(r.id) &&
-      !dayUsedIds.has(r.id)
+      !dayUsedIds.has(r.id) &&
+      (!avoidRecipeIds || !avoidRecipeIds.has(r.id))
     );
+
+    // Fallback 1: If avoiding current dishes left no candidates, allow them as long as not in cycle
+    if (eligible.length === 0) {
+      eligible = notDisliked.filter(r => 
+        r.suitableSlots.includes(slot) &&
+        !cycleUsedIds.has(r.id) &&
+        !historicalBannedIds.has(r.id) &&
+        !dayUsedIds.has(r.id)
+      );
+    }
+
+    // Fallback 2: If cycle cooldown exhausted slot options, allow any non-disliked dish not used today
+    if (eligible.length === 0) {
+      eligible = notDisliked.filter(r => 
+        r.suitableSlots.includes(slot) &&
+        !dayUsedIds.has(r.id)
+      );
+    }
+
+    // Fallback 3: Absolute safety net - guaranteed never empty
+    if (eligible.length === 0) {
+      eligible = allRecipes.filter(r => 
+        r.suitableSlots.includes(slot) &&
+        !dayUsedIds.has(r.id)
+      );
+    }
 
     // 2. Region Preference Filtering:
     // If user specified preferred regions (e.g. Chinese, Street Food, North), strongly prioritize them!
@@ -352,15 +380,12 @@ function generateSingleDayPlan(
     }
 
     const ranked = rankRecipesByPantry(candidates, pantry);
-    const chosen = pickDiverseTopRecipe(ranked);
+    const chosen = pickDiverseTopRecipe(ranked) || candidates[0] || eligible[0] || allRecipes[0];
 
-    if (chosen) {
-      dayUsedIds.add(chosen.id);
-      dayUsedCategories.add(chosen.category);
-      cycleUsedIds.add(chosen.id);
-      return chosen.id;
-    }
-    return null;
+    dayUsedIds.add(chosen.id);
+    dayUsedCategories.add(chosen.category);
+    cycleUsedIds.add(chosen.id);
+    return chosen.id;
   };
 
   // Pick Breakfast
@@ -420,9 +445,10 @@ export async function shuffleAndReplanCycle(
 
   // Lock cooked recipes first
   currentPlans.forEach(plan => {
-    if (plan.breakfast.isCooked && plan.breakfast.recipeId) cycleUsedRecipeIds.add(plan.breakfast.recipeId);
-    if (plan.lunch.isCooked && plan.lunch.recipeId) cycleUsedRecipeIds.add(plan.lunch.recipeId);
-    if (plan.dinner.isCooked && plan.dinner.recipeId && !plan.dinner.isDiningOut) cycleUsedRecipeIds.add(plan.dinner.recipeId);
+    if (!plan) return;
+    if (plan.breakfast?.isCooked && plan.breakfast.recipeId) cycleUsedRecipeIds.add(plan.breakfast.recipeId);
+    if (plan.lunch?.isCooked && plan.lunch.recipeId) cycleUsedRecipeIds.add(plan.lunch.recipeId);
+    if (plan.dinner?.isCooked && plan.dinner.recipeId && !plan.dinner.isDiningOut) cycleUsedRecipeIds.add(plan.dinner.recipeId);
   });
 
   const refreshedPlans: DayMealPlan[] = [];
@@ -434,24 +460,33 @@ export async function shuffleAndReplanCycle(
     const dateStr = d.toISOString().split('T')[0];
     const existing = currentPlans[i];
 
-    // If day exists, only replace slots that are NOT yet cooked
+    // Explicitly avoid existing recipe IDs for un-cooked slots on Day 0 so the active slot is guaranteed to change!
+    const avoidIds = new Set<string>();
+    if (existing) {
+      if (!existing.breakfast?.isCooked && existing.breakfast?.recipeId) avoidIds.add(existing.breakfast.recipeId);
+      if (!existing.lunch?.isCooked && existing.lunch?.recipeId) avoidIds.add(existing.lunch.recipeId);
+      if (!existing.dinner?.isCooked && existing.dinner?.recipeId) avoidIds.add(existing.dinner.recipeId);
+    }
+
+    // Generate fresh plan respecting settings & disliked ingredients
     const newDayPlan = generateSingleDayPlan(
       dateStr,
       allRecipes,
       pantry,
       cycleUsedRecipeIds,
       historyCooldown.bannedRecipeIds,
-      settings
+      settings,
+      avoidIds
     );
 
     if (existing) {
-      if (existing.breakfast.isCooked) {
+      if (existing.breakfast?.isCooked) {
         newDayPlan.breakfast = existing.breakfast;
       }
-      if (existing.lunch.isCooked) {
+      if (existing.lunch?.isCooked) {
         newDayPlan.lunch = existing.lunch;
       }
-      if (existing.dinner.isCooked || existing.dinner.isDiningOut) {
+      if (existing.dinner?.isCooked || existing.dinner?.isDiningOut) {
         newDayPlan.dinner = existing.dinner;
       }
     }

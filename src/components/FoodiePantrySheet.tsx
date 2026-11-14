@@ -29,10 +29,7 @@ interface FoodiePantrySheetProps {
   language?: 'en' | 'hi';
 }
 
-// Quick Daily Essentials (Common 1-tap staples)
-const QUICK_ESSENTIAL_IDS = [
-  'onion', 'tomato', 'potato', 'paneer', 'dahi', 'atta', 'yellow_moong', 'green_peas'
-];
+
 
 export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
   isOpen,
@@ -372,11 +369,11 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             )}
           </div>
 
-          {/* In-Stock Items: Clean Chips Display (Zero clutter!) */}
+          {/* Currently In Fridge: Clean Active Pills Display */}
           <div className="space-y-2">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                <span>🥬</span>
+                <span>🧊</span>
                 <span>{t.inFridgeCount(totalCount)}</span>
               </span>
               {totalCount > 0 && (
@@ -391,33 +388,21 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
               )}
             </div>
 
-            {totalCount === 0 ? (
-              <div className="p-6 rounded-2xl border border-dashed border-orange-200/90 text-center bg-orange-50/20">
-                <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto mb-2 text-xl">
-                  🧊
-                </div>
-                <h4 className="text-xs font-black text-slate-800">
-                  {t.emptyFridgeTitle}
-                </h4>
-                <p className="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">
-                  {t.emptyFridgeSubtitle}
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl bg-orange-50/30 border border-orange-200/60 min-h-[70px]">
+            {totalCount > 0 ? (
+              <div className="flex flex-wrap gap-1.5 p-2.5 rounded-2xl bg-orange-50/40 border border-orange-200/60 min-h-[50px]">
                 {selectedItemsList.map(item => {
                   const displayName = language === 'hi' ? item.nameHi : item.nameEn;
                   return (
                     <span
                       key={item.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-orange-950 border border-orange-200/80 text-xs font-bold shadow-2xs group hover:border-orange-300 animate-in fade-in zoom-in-95 duration-150"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500 text-white border border-orange-600 text-xs font-black shadow-2xs animate-in fade-in zoom-in-95 duration-150"
                     >
                       <span>{item.icon}</span>
                       <span>{displayName}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(item.id)}
-                        className="w-4 h-4 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-400 flex items-center justify-center ml-0.5 transition-colors cursor-pointer"
+                        className="w-4 h-4 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center ml-0.5 transition-colors cursor-pointer"
                         title="Remove"
                       >
                         <X className="w-2.5 h-2.5" />
@@ -426,36 +411,86 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                   );
                 })}
               </div>
+            ) : (
+              <p className="text-[11px] text-slate-500 italic px-1">
+                {language === 'hi'
+                  ? 'नीचे दी गई सब्ज़ियों पर टैप करें या ऊपर खोजें'
+                  : 'Tap vegetables below or type in search bar above to add'}
+              </p>
             )}
           </div>
 
-          {/* Quick Essentials (Clean 1-tap pills for everyday basics) */}
+          {/* Section 1: Fresh Vegetables & Dairy (Easy 1-Tap Toggle) */}
           <div className="pt-2 border-t border-orange-100/80 space-y-2">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block px-0.5">
-              {t.quickEssentials}
-            </span>
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <span>🥬</span>
+                <span>{language === 'hi' ? 'ताज़ी सब्ज़ियां व डेयरी' : 'Fresh Vegetables & Dairy'}</span>
+              </span>
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {QUICK_ESSENTIAL_IDS.map(id => {
-                const item = allLibraryItems.find(i => i.id === id);
-                if (!item) return null;
-                const isSelected = veggies.has(id) || staples.has(id);
+              {STANDARD_VEGGIES.map(item => {
+                const isSelected = veggies.has(item.id);
                 const displayName = language === 'hi' ? item.nameHi : item.nameEn;
 
                 return (
                   <button
-                    key={id}
+                    key={item.id}
                     type="button"
                     onClick={() => {
                       if (isSelected) {
-                        handleRemoveItem(id);
+                        handleRemoveItem(item.id);
                       } else {
                         handleAddItem(item);
                       }
                     }}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-orange-500 text-white shadow-2xs border border-orange-500 font-black'
-                        : 'bg-white hover:bg-orange-50 text-slate-700 border border-orange-200/70'
+                        ? 'bg-emerald-600 text-white shadow-2xs border border-emerald-600 font-black ring-2 ring-emerald-200'
+                        : 'bg-white hover:bg-orange-50 text-slate-800 border border-orange-200/80 shadow-2xs'
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{displayName}</span>
+                    {isSelected ? (
+                      <Check className="w-3 h-3 text-white ml-0.5" />
+                    ) : (
+                      <Plus className="w-3 h-3 text-slate-400 ml-0.5" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 2: Lentils & Pantry Staples (Easy 1-Tap Toggle) */}
+          <div className="pt-2 border-t border-orange-100/80 space-y-2">
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <span>🌾</span>
+                <span>{language === 'hi' ? 'दालें व रसोई सामग्री' : 'Lentils & Staples'}</span>
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {STANDARD_STAPLES.map(item => {
+                const isSelected = staples.has(item.id);
+                const displayName = language === 'hi' ? item.nameHi : item.nameEn;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        handleRemoveItem(item.id);
+                      } else {
+                        handleAddItem(item);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-600 text-white shadow-2xs border border-amber-600 font-black ring-2 ring-amber-200'
+                        : 'bg-white hover:bg-orange-50 text-slate-800 border border-orange-200/80 shadow-2xs'
                     }`}
                   >
                     <span>{item.icon}</span>

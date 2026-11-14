@@ -373,8 +373,9 @@ export const App: React.FC = () => {
 
   const handleRefreshShuffle = async () => {
     if (!db) return;
-    const currentPantry = await db.getPantry() || pantry;
+    const currentPantry = (await db.getPantry()) || pantry;
     if (!currentPantry) return;
+    isMutatingRef.current = true;
     setIsReplanning(true);
 
     // 1. Rotate inspiration offsets so Food Inspiration immediately shows fresh recipes
@@ -388,6 +389,7 @@ export const App: React.FC = () => {
     const refreshed = await shuffleAndReplanCycle(db, sixDayPlans, todayStr, currentPantry);
     setSixDayPlans(refreshed);
     setIsReplanning(false);
+    isMutatingRef.current = false;
 
     showToast(TRANSLATIONS[language].shuffledToast);
   };
@@ -582,18 +584,24 @@ export const App: React.FC = () => {
           {(() => {
             const displayRecipe = (() => {
               if (selectedMealSlot === 'breakfast') {
-                return menuViewMode === 'inspiration' && currentBreakfastInspiration
+                return (menuViewMode === 'inspiration' && currentBreakfastInspiration)
                   ? currentBreakfastInspiration.recipe
-                  : (selectedPlan.breakfast.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null);
+                  : (selectedPlan?.breakfast?.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null)
+                    || recipes.find(r => r.suitableSlots.includes('breakfast'))
+                    || null;
               }
               if (selectedMealSlot === 'lunch') {
-                return menuViewMode === 'inspiration' && currentLunchInspiration
+                return (menuViewMode === 'inspiration' && currentLunchInspiration)
                   ? currentLunchInspiration.recipe
-                  : (selectedPlan.lunch.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null);
+                  : (selectedPlan?.lunch?.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null)
+                    || recipes.find(r => r.suitableSlots.includes('lunch'))
+                    || null;
               }
-              return menuViewMode === 'inspiration' && currentDinnerInspiration
+              return (menuViewMode === 'inspiration' && currentDinnerInspiration)
                 ? currentDinnerInspiration.recipe
-                : (selectedPlan.dinner.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null);
+                : (selectedPlan?.dinner?.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null)
+                  || recipes.find(r => r.suitableSlots.includes('dinner'))
+                  || null;
             })();
 
             return (
