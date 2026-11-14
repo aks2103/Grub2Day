@@ -4,7 +4,7 @@
 // ==============================================================================
 
 import { IDatabaseProvider } from '../db/dbInterface';
-import { DayMealPlan, Recipe, MealSlot } from '../types';
+import { DayMealPlan, Recipe, MealSlot, PantryState } from '../types';
 import { getActiveCooldownReport } from './cooldownService';
 import { rankRecipesByPantry } from './pantryService';
 
@@ -98,6 +98,147 @@ export async function cascadeReplanFutureDays(
   }
 
   return finalPlans;
+}
+
+/**
+ * Smart, time-aware pantry re-planner.
+ * If user updates fridge at 6 PM, breakfast and lunch are locked. ONLY dinner (and future days)
+ * are re-suggested to immediately match the newly available ingredients!
+ */
+export async function replanUpcomingSlotsFromPantry(
+  db: IDatabaseProvider,
+  currentSixDays: DayMealPlan[],
+  todayStr: string,
+  updatedPantry: PantryState
+): Promise<{ plans: DayMealPlan[]; affectedSlots: string[] }> {
+  const allRecipes = await db.getAllRecipes();
+  const historyCooldown = await getActiveCooldownReport(db, 6, todayStr);
+  const currentHour = new Date().getHours();
+
+  const finalPlans: DayMealPlan[] = [];
+  const cycleUsedRecipeIds = new Set<string>();
+
+  const todayPlan = currentSixDays[0] 
+    ? JSON.parse(JSON.stringify(currentSixDays[0])) as DayMealPlan
+    : null;
+  const affectedSlots: string[] = [];
+
+  if (todayPlan) {
+    const todayUsedIds = new Set<string>();
+    const todayUsedCategories = new Set<string>();
+
+    // 1. Breakfast: Locked if past 11 AM (11:00) or already cooked
+    const lockBreakfast = currentHour >= 11 || todayPlan.breakfast.isCooked;
+    if (lockBreakfast && todayPlan.breakfast.recipeId) {
+      todayUsedIds.add(todayPlan.breakfast.recipeId);
+      cycleUsedRecipeIds.add(todayPlan.breakfast.recipeId);
+      const r = allRecipes.find(x => x.id === todayPlan.breakfast.recipeId);
+      if (r) todayUsedCategories.add(r.category);
+    } else {
+      // Re-evaluate breakfast with new pantry
+      const eligible = allRecipes.filter(r => 
+        r.suitableSlots.includes('breakfast') &&
+        !historyCooldown.bannedRecipeIds.has(r.id)
+      );
+      const ranked = rankRecipesByPantry(eligible, updatedPantry);
+      if (ranked.length > 0) {
+        todayPlan.breakfast = {
+          ...todayPlan.breakfast,
+          recipeId: ranked[0].recipe.id,
+          isCooked: false,
+        };
+        todayUsedIds.add(ranked[0].recipe.id);
+        todayUsedCategories.add(ranked[0].recipe.category);
+        cycleUsedRecipeIds.add(ranked[0].recipe.id);
+        affectedSlots.push('breakfast');
+      }
+    }
+
+    // 2. Lunch: Locked if past 3 PM (15:00) or already cooked
+    const lockLunch = currentHour >= 15 || todayPlan.lunch.isCooked;
+    if (lockLunch && todayPlan.lunch.recipeId) {
+      todayUsedIds.add(todayPlan.lunch.recipeId);
+      cycleUsedRecipeIds.add(todayPlan.lunch.recipeId);
+      const r = allRecipes.find(x => x.id === todayPlan.lunch.recipeId);
+      if (r) todayUsedCategories.add(r.category);
+    } else {
+      // Re-evaluate lunch with new pantry
+      const eligible = allRecipes.filter(r => 
+        r.suitableSlots.includes('lunch') &&
+        !todayUsedIds.has(r.id) &&
+        !historyCooldown.bannedRecipeIds.has(r.id)
+      );
+      const ranked = rankRecipesByPantry(eligible, updatedPantry);
+      if (ranked.length > 0) {
+        todayPlan.lunch = {
+          ...todayPlan.lunch,
+          recipeId: ranked[0].recipe.id,
+          isCooked: false,
+        };
+        todayUsedIds.add(ranked[0].recipe.id);
+        todayUsedCategories.add(ranked[0].recipe.category);
+        cycleUsedRecipeIds.add(ranked[0].recipe.id);
+        affectedSlots.push('lunch');
+      }
+    }
+
+    // 3. Dinner: Locked ONLY if already cooked or dining out
+    const lockDinner = todayPlan.dinner.isCooked || todayPlan.dinner.isDiningOut;
+    if (lockDinner && todayPlan.dinner.recipeId) {
+      todayUsedIds.add(todayPlan.dinner.recipeId);
+      if (!todayPlan.dinner.isDiningOut) cycleUsedRecipeIds.add(todayPlan.dinner.recipeId);
+    } else {
+      // Re-evaluate dinner with new pantry (must be distinct from today's breakfast & lunch)
+      const eligible = allRecipes.filter(r => 
+        r.suitableSlots.includes('dinner') &&
+        !todayUsedIds.has(r.id) &&
+        !historyCooldown.bannedRecipeIds.has(r.id)
+      );
+      // Prioritize distinct category from lunch if possible
+      const diverse = eligible.filter(r => !todayUsedCategories.has(r.category));
+      const pool = diverse.length > 0 ? diverse : eligible;
+      const ranked = rankRecipesByPantry(pool, updatedPantry);
+      if (ranked.length > 0) {
+        todayPlan.dinner = {
+          ...todayPlan.dinner,
+          recipeId: ranked[0].recipe.id,
+          isCooked: false,
+        };
+        todayUsedIds.add(ranked[0].recipe.id);
+        cycleUsedRecipeIds.add(ranked[0].recipe.id);
+        affectedSlots.push('dinner');
+      }
+    }
+
+    todayPlan.updatedAt = new Date().toISOString();
+    await db.saveDayMealPlan(todayPlan);
+    finalPlans.push(todayPlan);
+  }
+
+  // 4. Cascade future days 1 to 5 to avoid any repeats with today & prioritize new pantry
+  const start = new Date(todayStr);
+  for (let i = 1; i < 6; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+
+    const newDayPlan = generateSingleDayPlan(
+      dateStr,
+      allRecipes,
+      updatedPantry,
+      cycleUsedRecipeIds,
+      historyCooldown.bannedRecipeIds
+    );
+
+    if (newDayPlan.breakfast.recipeId) cycleUsedRecipeIds.add(newDayPlan.breakfast.recipeId);
+    if (newDayPlan.lunch.recipeId) cycleUsedRecipeIds.add(newDayPlan.lunch.recipeId);
+    if (newDayPlan.dinner.recipeId && !newDayPlan.dinner.isDiningOut) cycleUsedRecipeIds.add(newDayPlan.dinner.recipeId);
+
+    await db.saveDayMealPlan(newDayPlan);
+    finalPlans.push(newDayPlan);
+  }
+
+  return { plans: finalPlans, affectedSlots };
 }
 
 function generateSingleDayPlan(

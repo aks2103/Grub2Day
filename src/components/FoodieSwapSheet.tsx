@@ -133,13 +133,14 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
             </div>
           ) : (
             filtered.map(recipe => (
-              <div
+              <button
                 key={recipe.id}
+                type="button"
                 onClick={() => {
                   onSelectRecipe(recipe.id);
                   onClose();
                 }}
-                className="p-3.5 rounded-2xl border border-orange-100/80 hover:border-orange-300 hover:bg-orange-50/30 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between shadow-2xs"
+                className="w-full text-left p-3.5 rounded-2xl border border-orange-100/80 hover:border-orange-300 hover:bg-orange-50/40 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between shadow-2xs bg-white"
               >
                 <div className="flex-1 pr-3">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -167,11 +168,11 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                   </div>
                 </div>
 
-                <button className="px-3 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-black shadow-xs hover:bg-orange-600 transition-colors flex items-center gap-1">
+                <div className="px-3 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-black shadow-xs hover:bg-orange-600 transition-colors flex items-center gap-1 flex-shrink-0">
                   <Check className="w-3.5 h-3.5" />
                   <span>Pick</span>
-                </button>
-              </div>
+                </div>
+              </button>
             ))
           )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FoodieHeader } from './components/FoodieHeader';
 import { FoodieDateStrip } from './components/FoodieDateStrip';
 import { FoodieMealCard } from './components/FoodieMealCard';
@@ -10,7 +10,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
 import { DayMealPlan, Recipe, PantryState, MealSlot, UserHouseholdSettings } from './types';
-import { getRollingSixDayPlans, cascadeReplanFutureDays } from './services/rollingPlannerService';
+import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFromPantry } from './services/rollingPlannerService';
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { APP_CONFIG } from './config/env';
@@ -29,6 +29,9 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Mutex ref to prevent self-triggered real-time subscription loops
+  const isMutatingRef = useRef<boolean>(false);
 
   // Sheets & Modals
   const [pantrySheetOpen, setPantrySheetOpen] = useState(false);
@@ -102,8 +105,9 @@ export const App: React.FC = () => {
       }
       setIsLoading(false);
 
-      // Real-time synchronization across devices
+      // Real-time synchronization across devices (ignores local mutations)
       const unsub = database.subscribeToChanges(async (event) => {
+        if (isMutatingRef.current) return;
         if (event.collection === 'meal_plans') {
           const refreshed = await getRollingSixDayPlans(database, todayStr);
           setSixDayPlans(refreshed);
@@ -151,6 +155,7 @@ export const App: React.FC = () => {
 
   const handleSelectSwapRecipe = async (newRecipeId: string) => {
     if (!db) return;
+    isMutatingRef.current = true;
     const { dayIndex, slot } = swapTarget;
     const targetPlan = sixDayPlans[dayIndex];
 
@@ -161,6 +166,7 @@ export const App: React.FC = () => {
 
     const updatedPlans = [...sixDayPlans];
     updatedPlans[dayIndex] = updatedPlan;
+    setSixDayPlans(updatedPlans);
 
     // Cascading replan: auto-replan future days to guarantee zero repetitions
     if (dayIndex < 5) {
@@ -171,9 +177,9 @@ export const App: React.FC = () => {
       setIsReplanning(false);
       showToast("✅ Next days re-planned! Zero repeats.");
     } else {
-      setSixDayPlans(updatedPlans);
       showToast("✅ Dish updated!");
     }
+    isMutatingRef.current = false;
   };
 
   const handleMarkCooked = async (dayIndex: number, slot: MealSlot, isCooked: boolean) => {
@@ -237,6 +243,31 @@ export const App: React.FC = () => {
     if (!db) return;
     await db.savePantry(updatedPantry);
     setPantry(updatedPantry);
+  };
+
+  const handleApplyPantryUpdates = async () => {
+    if (!db || !pantry) return;
+    isMutatingRef.current = true;
+    setIsReplanning(true);
+
+    const { plans, affectedSlots } = await replanUpcomingSlotsFromPantry(
+      db,
+      sixDayPlans,
+      todayStr,
+      pantry
+    );
+
+    setSixDayPlans(plans);
+    setIsReplanning(false);
+    isMutatingRef.current = false;
+
+    if (affectedSlots.includes('dinner') && affectedSlots.length === 1) {
+      showToast("🧊 Tonight's dinner updated based on your fridge items!");
+    } else if (affectedSlots.length > 0) {
+      showToast(`🧊 Upcoming meals updated to use your fridge items!`);
+    } else {
+      showToast("✨ 6-day cycle synced with your fridge!");
+    }
   };
 
   const handleCompleteOnboarding = async (newSettings: UserHouseholdSettings) => {
@@ -392,7 +423,7 @@ export const App: React.FC = () => {
         onClose={() => setPantrySheetOpen(false)}
         pantry={pantry}
         onUpdatePantry={handleUpdatePantry}
-        onApply={handleFullReplan}
+        onApply={handleApplyPantryUpdates}
         wifePhone={wifePhone}
         onUpdateWifePhone={handleUpdateWifePhone}
         showWhatsAppShare={showWhatsAppShare}
