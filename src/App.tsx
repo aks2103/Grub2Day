@@ -369,7 +369,13 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-orange-100">
-      {/* Toast Notification */}
+      {/* Toast Notification & Replanning Indicator */}
+      {isReplanning && !toastMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 border border-orange-500 animate-in fade-in slide-in-from-top-2">
+          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <span>Updating 6-day cycle...</span>
+        </div>
+      )}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-700 max-w-sm text-center animate-in fade-in slide-in-from-top-2">
           <Sparkles className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
@@ -381,8 +387,6 @@ export const App: React.FC = () => {
       <FoodieHeader
         currentDateStr={todayStr}
         onOpenPantry={() => setPantrySheetOpen(true)}
-        onReplanCycle={handleFullReplan}
-        isReplanning={isReplanning}
         householdName={settings?.householdName}
         onOpenProfile={() => setOnboardingOpen(true)}
       />
@@ -484,8 +488,6 @@ export const App: React.FC = () => {
                   wifePhone={wifePhone}
                   showWhatsAppShare={showWhatsAppShare}
                   onUpdateWifePhone={handleUpdateWifePhone}
-                  inspiration={menuViewMode === 'fridge' ? currentBreakfastInspiration : null}
-                  onSelectInspiration={(id) => handleSelectInspiration('breakfast', id)}
                   onShuffleInspiration={() => handleShuffleInspiration('breakfast')}
                   isMissingInFridge={pantry && displayBreakfastRecipe ? !hasRequiredCoreIngredients(displayBreakfastRecipe, pantry) : false}
                   missingIngredients={pantry && displayBreakfastRecipe ? getMissingIngredientsForRecipe(displayBreakfastRecipe, pantry) : []}
@@ -505,8 +507,6 @@ export const App: React.FC = () => {
                   wifePhone={wifePhone}
                   showWhatsAppShare={showWhatsAppShare}
                   onUpdateWifePhone={handleUpdateWifePhone}
-                  inspiration={menuViewMode === 'fridge' ? currentLunchInspiration : null}
-                  onSelectInspiration={(id) => handleSelectInspiration('lunch', id)}
                   onShuffleInspiration={() => handleShuffleInspiration('lunch')}
                   isMissingInFridge={pantry && displayLunchRecipe ? !hasRequiredCoreIngredients(displayLunchRecipe, pantry) : false}
                   missingIngredients={pantry && displayLunchRecipe ? getMissingIngredientsForRecipe(displayLunchRecipe, pantry) : []}
@@ -527,8 +527,6 @@ export const App: React.FC = () => {
                   wifePhone={wifePhone}
                   showWhatsAppShare={showWhatsAppShare}
                   onUpdateWifePhone={handleUpdateWifePhone}
-                  inspiration={menuViewMode === 'fridge' ? currentDinnerInspiration : null}
-                  onSelectInspiration={(id) => handleSelectInspiration('dinner', id)}
                   onShuffleInspiration={() => handleShuffleInspiration('dinner')}
                   isMissingInFridge={pantry && displayDinnerRecipe ? !hasRequiredCoreIngredients(displayDinnerRecipe, pantry) : false}
                   missingIngredients={pantry && displayDinnerRecipe ? getMissingIngredientsForRecipe(displayDinnerRecipe, pantry) : []}

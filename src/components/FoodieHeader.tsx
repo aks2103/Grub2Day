@@ -4,8 +4,6 @@ import { Refrigerator, RotateCcw, User } from 'lucide-react';
 interface FoodieHeaderProps {
   currentDateStr: string;
   onOpenPantry: () => void;
-  onReplanCycle: () => void;
-  isReplanning?: boolean;
   householdName?: string;
   onOpenProfile?: () => void;
 }
@@ -13,8 +11,6 @@ interface FoodieHeaderProps {
 export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
   currentDateStr,
   onOpenPantry,
-  onReplanCycle,
-  isReplanning = false,
   householdName,
   onOpenProfile,
 }) => {
@@ -77,14 +73,13 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
               <span className="text-[11px]">Fridge</span>
             </button>
 
-            {/* Re-roll 6 days */}
+            {/* Refresh / Reload Whole Site */}
             <button
-              onClick={onReplanCycle}
-              disabled={isReplanning}
-              className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-600 border border-slate-200/70 flex items-center justify-center transition-all disabled:opacity-50"
-              title="Re-plan the 6-day cycle"
+              onClick={() => window.location.reload()}
+              className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-600 border border-slate-200/70 flex items-center justify-center transition-all shadow-2xs"
+              title="Reload and refresh site"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${isReplanning ? 'animate-spin text-orange-500' : ''}`} />
+              <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
             </button>
           </div>
         </div>

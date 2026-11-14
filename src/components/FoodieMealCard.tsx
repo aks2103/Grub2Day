@@ -15,8 +15,6 @@ interface FoodieMealCardProps {
   wifePhone?: string;
   showWhatsAppShare?: boolean;
   onUpdateWifePhone?: (phone: string) => void;
-  inspiration?: { recipe: Recipe; missingIngredients: string[] } | null;
-  onSelectInspiration?: (recipeId: string) => void;
   onShuffleInspiration?: () => void;
   isMissingInFridge?: boolean;
   missingIngredients?: string[];
@@ -65,8 +63,6 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   wifePhone,
   showWhatsAppShare = true,
   onUpdateWifePhone,
-  inspiration,
-  onSelectInspiration,
   onShuffleInspiration,
   isMissingInFridge = false,
   missingIngredients = [],
@@ -100,33 +96,11 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
     const mealName = recipe.hindiName ? `${recipe.name} (${recipe.hindiName})` : recipe.name;
     const slotTitle = meta.title;
     const appUrl = window.location.origin;
+    const needStr = isMissingInFridge && missingIngredients.length > 0 
+      ? `\n🛒 Need to get: ${missingIngredients.join(', ')}` 
+      : '';
     const text = encodeURIComponent(
-      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️\n\nProtein Boost: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
-    );
-    window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
-  };
-
-  const handleShareInspiration = (inspRecipe: Recipe, missingIngs: string[]) => {
-    let targetPhone = wifePhone || localStorage.getItem('wife_whatsapp_phone') || '';
-    if (!targetPhone) {
-      const entered = window.prompt(
-        "Enter partner's 10-digit mobile number for 1-tap direct WhatsApp sharing:\n(e.g. 9876543210)",
-        ""
-      );
-      if (!entered || !entered.trim()) return;
-      let cleaned = entered.replace(/\D/g, '');
-      if (cleaned.length === 10) cleaned = '91' + cleaned;
-      localStorage.setItem('wife_whatsapp_phone', cleaned);
-      targetPhone = cleaned;
-      if (onUpdateWifePhone) onUpdateWifePhone(cleaned);
-    }
-
-    const mealName = inspRecipe.hindiName ? `${inspRecipe.name} (${inspRecipe.hindiName})` : inspRecipe.name;
-    const slotTitle = meta.title;
-    const appUrl = window.location.origin;
-    const missingStr = missingIngs.length > 0 ? `🛒 Need to get: ${missingIngs.join(', ')}\n` : '';
-    const text = encodeURIComponent(
-      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann kar raha hai 💡😋\n${missingStr}Protein: ${inspRecipe.baseProteinGrams + inspRecipe.addedProteinGrams}g\n\nCheck on Grub2Day: ${appUrl}`
+      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️${needStr}\n\nProtein Boost: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
     );
     window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
   };
@@ -398,82 +372,6 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
           </>
         )}
       </div>
-
-      {/* 💡 Food Inspiration Section: Suggests items not in fridge so you never miss out on good food! */}
-      {!isViewingInspiration && inspiration && (
-        <div className="mt-3 pt-2.5 border-t border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-yellow-50/70 rounded-xl p-2.5 border border-amber-300/70 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm">💡</span>
-              <span className="text-[11px] font-black text-amber-950 uppercase tracking-wider">
-                Food Inspiration
-              </span>
-            </div>
-            {onShuffleInspiration && (
-              <button
-                type="button"
-                onClick={onShuffleInspiration}
-                className="text-[10px] font-black text-amber-800 hover:text-amber-950 bg-amber-200/70 hover:bg-amber-200 px-2 py-0.5 rounded-md transition-colors"
-                title="See another delicious recipe idea"
-              >
-                Shuffle 🎲
-              </button>
-            )}
-          </div>
-
-          <div className="bg-white/95 rounded-lg p-2.5 border border-amber-200/80 mb-2">
-            <div className="flex items-start justify-between gap-1 mb-0.5">
-              <h4 className="text-xs font-black text-slate-900 leading-tight">
-                {inspiration.recipe.name}
-                {inspiration.recipe.hindiName && (
-                  <span className="text-[11px] font-bold text-amber-800 ml-1">
-                    ({inspiration.recipe.hindiName})
-                  </span>
-                )}
-              </h4>
-              <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 flex-shrink-0">
-                {inspiration.recipe.baseProteinGrams + inspiration.recipe.addedProteinGrams}g Protein
-              </span>
-            </div>
-
-            <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed mb-1.5">
-              {inspiration.recipe.description}
-            </p>
-
-            {inspiration.missingIngredients.length > 0 && (
-              <div className="flex items-center gap-1 flex-wrap pt-1.5 border-t border-amber-100 text-[10px]">
-                <span className="font-extrabold text-amber-900 flex items-center gap-0.5">
-                  <ShoppingCart className="w-3 h-3 text-orange-600 inline" />
-                  Need:
-                </span>
-                <span className="font-bold text-orange-800">
-                  {inspiration.missingIngredients.join(', ')}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons for Inspiration: Cook this instead & Tell Partner */}
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              type="button"
-              onClick={() => onSelectInspiration && onSelectInspiration(inspiration.recipe.id)}
-              className="h-8 px-2 rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[11px] font-black shadow-2xs flex items-center justify-center gap-1 transition-all"
-            >
-              <span>Cook this instead 🍲</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleShareInspiration(inspiration.recipe, inspiration.missingIngredients)}
-              className="h-8 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[11px] font-bold shadow-2xs flex items-center justify-center gap-1 transition-all"
-            >
-              <MessageCircle className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">Tell Partner 💬</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
