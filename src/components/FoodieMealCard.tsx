@@ -20,6 +20,8 @@ interface FoodieMealCardProps {
   onShuffleInspiration?: () => void;
   isMissingInFridge?: boolean;
   missingIngredients?: string[];
+  isViewingInspiration?: boolean;
+  onCommitInspiration?: () => void;
 }
 
 const SLOT_STYLES: Record<MealSlot, { title: string; emoji: string; accent: string; badge: string }> = {
@@ -68,6 +70,8 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   onShuffleInspiration,
   isMissingInFridge = false,
   missingIngredients = [],
+  isViewingInspiration = false,
+  onCommitInspiration,
 }) => {
   const meta = SLOT_STYLES[slot];
 
@@ -207,6 +211,16 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
               <span>Inspiration</span>
             </span>
           )}
+          {isViewingInspiration && onShuffleInspiration && (
+            <button
+              type="button"
+              onClick={onShuffleInspiration}
+              className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200/90 hover:bg-amber-300 text-amber-950 transition-colors flex items-center gap-0.5 active:scale-95"
+              title="See another inspiration dish"
+            >
+              <span>Shuffle 🎲</span>
+            </button>
+          )}
         </div>
 
         {/* Nutritional Pills */}
@@ -304,57 +318,89 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
 
       {/* Action Controls: Structured Clean Touch Targets */}
       <div className="pt-2 border-t border-slate-100 space-y-1.5">
-        {/* Row 1: How to Cook + Swap (50/50 Grid) */}
-        <div className="grid grid-cols-2 gap-1.5">
-          <button
-            onClick={() => onOpenHowToCook(recipe)}
-            className="h-9 px-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black transition-all flex items-center justify-center gap-1 shadow-2xs"
-            title="View cooking steps & YouTube video"
-          >
-            <span>How to Cook 🍳</span>
-          </button>
-
-          <button
-            onClick={onSwapClick}
-            className="h-9 px-2 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 border border-orange-200/80 text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-2xs"
-            title="Swap this dish — app automatically replans future days"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-orange-600 flex-shrink-0" />
-            <span>Swap Dish</span>
-          </button>
-        </div>
-
-        {/* Row 2: Cooked Button (Today only) */}
-        {dayIndex === 0 && (
-          <button
-            onClick={() => onMarkCooked(!isCooked)}
-            className={`w-full h-9 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-xs ${
-              isCooked
-                ? 'bg-emerald-600 text-white'
-                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
-            }`}
-          >
-            <Check className="w-3.5 h-3.5" />
-            <span>{isCooked ? 'Marked as Cooked ✓' : 'Cooked This!'}</span>
-          </button>
-        )}
-
-        {/* Dinner Dining out toggle */}
-        {slot === 'dinner' && onToggleDiningOut && (
-          <div className="text-center pt-0.5">
+        {isViewingInspiration ? (
+          <div className="space-y-1.5">
             <button
-              onClick={() => onToggleDiningOut(true)}
-              className="text-[11px] font-bold text-slate-500 hover:text-orange-700 active:scale-95 transition-colors inline-flex items-center gap-1 px-2 py-0.5"
+              type="button"
+              onClick={onCommitInspiration}
+              className="w-full h-10 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white text-xs font-black shadow-xs flex items-center justify-center gap-1.5 transition-all"
             >
-              <UtensilsCrossed className="w-3 h-3 text-orange-500" />
-              <span>Dining out tonight? Tap here</span>
+              <span>🍲 Set as Today's {meta.title} Meal!</span>
             </button>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => onOpenHowToCook(recipe)}
+                className="h-8.5 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200 text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-2xs"
+              >
+                <span>How to Cook 🍳</span>
+              </button>
+              <button
+                type="button"
+                onClick={onSwapClick}
+                className="h-8.5 px-2 rounded-xl bg-orange-50 hover:bg-orange-100/80 text-orange-950 border border-orange-200/80 text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-2xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-orange-600 flex-shrink-0" />
+                <span>Browse All</span>
+              </button>
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Row 1: How to Cook + Swap (50/50 Grid) */}
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => onOpenHowToCook(recipe)}
+                className="h-9 px-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black transition-all flex items-center justify-center gap-1 shadow-2xs"
+                title="View cooking steps & YouTube video"
+              >
+                <span>How to Cook 🍳</span>
+              </button>
+
+              <button
+                onClick={onSwapClick}
+                className="h-9 px-2 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 border border-orange-200/80 text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-2xs"
+                title="Swap this dish — app automatically replans future days"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-orange-600 flex-shrink-0" />
+                <span>Swap Dish</span>
+              </button>
+            </div>
+
+            {/* Row 2: Cooked Button (Today only) */}
+            {dayIndex === 0 && (
+              <button
+                onClick={() => onMarkCooked(!isCooked)}
+                className={`w-full h-9 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-xs ${
+                  isCooked
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                }`}
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{isCooked ? 'Marked as Cooked ✓' : 'Cooked This!'}</span>
+              </button>
+            )}
+
+            {/* Dinner Dining out toggle */}
+            {slot === 'dinner' && onToggleDiningOut && (
+              <div className="text-center pt-0.5">
+                <button
+                  onClick={() => onToggleDiningOut(true)}
+                  className="text-[11px] font-bold text-slate-500 hover:text-orange-700 active:scale-95 transition-colors inline-flex items-center gap-1 px-2 py-0.5"
+                >
+                  <UtensilsCrossed className="w-3 h-3 text-orange-500" />
+                  <span>Dining out tonight? Tap here</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* 💡 Food Inspiration Section: Suggests items not in fridge so you never miss out on good food! */}
-      {inspiration && (
+      {!isViewingInspiration && inspiration && (
         <div className="mt-3 pt-2.5 border-t border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-yellow-50/70 rounded-xl p-2.5 border border-amber-300/70 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">

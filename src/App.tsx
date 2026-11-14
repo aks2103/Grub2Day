@@ -443,65 +443,101 @@ export const App: React.FC = () => {
           </button>
         </div>
 
+        {/* Informative Banner when in Food Inspiration Mode */}
+        {menuViewMode === 'inspiration' && (
+          <div className="bg-gradient-to-r from-amber-100/90 via-orange-100/80 to-amber-100/90 rounded-2xl p-2.5 border border-amber-300 text-xs text-amber-950 font-bold mb-2.5 flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="text-base">💡</span>
+              <p className="leading-tight text-[11px]">
+                <strong>Chef's Inspiration Active:</strong> Showing gourmet favorites not in your fridge. Tap <em>"Set as Meal"</em> or <em>"Shuffle 🎲"</em> to explore!
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* 3 Foodie Meal Cards (Breakfast, Lunch, Dinner) */}
         <div className="space-y-3 flex-1">
-          <FoodieMealCard
-            slot="breakfast"
-            entry={selectedPlan.breakfast}
-            recipe={selectedPlan.breakfast.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null}
-            dayIndex={selectedDayIndex}
-            onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked)}
-            onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
-            onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-            onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'breakfast', isCraving)}
-            wifePhone={wifePhone}
-            showWhatsAppShare={showWhatsAppShare}
-            onUpdateWifePhone={handleUpdateWifePhone}
-            inspiration={currentBreakfastInspiration}
-            onSelectInspiration={(id) => handleSelectInspiration('breakfast', id)}
-            onShuffleInspiration={() => handleShuffleInspiration('breakfast')}
-            isMissingInFridge={pantry && selectedPlan.breakfast.recipeId && recipesMap.get(selectedPlan.breakfast.recipeId) ? !hasRequiredCoreIngredients(recipesMap.get(selectedPlan.breakfast.recipeId)!, pantry) : false}
-            missingIngredients={pantry && selectedPlan.breakfast.recipeId && recipesMap.get(selectedPlan.breakfast.recipeId) ? getMissingIngredientsForRecipe(recipesMap.get(selectedPlan.breakfast.recipeId)!, pantry) : []}
-          />
+          {(() => {
+            const displayBreakfastRecipe = menuViewMode === 'inspiration' && currentBreakfastInspiration
+              ? currentBreakfastInspiration.recipe
+              : (selectedPlan.breakfast.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null);
 
-          <FoodieMealCard
-            slot="lunch"
-            entry={selectedPlan.lunch}
-            recipe={selectedPlan.lunch.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null}
-            dayIndex={selectedDayIndex}
-            onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked)}
-            onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
-            onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-            onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'lunch', isCraving)}
-            wifePhone={wifePhone}
-            showWhatsAppShare={showWhatsAppShare}
-            onUpdateWifePhone={handleUpdateWifePhone}
-            inspiration={currentLunchInspiration}
-            onSelectInspiration={(id) => handleSelectInspiration('lunch', id)}
-            onShuffleInspiration={() => handleShuffleInspiration('lunch')}
-            isMissingInFridge={pantry && selectedPlan.lunch.recipeId && recipesMap.get(selectedPlan.lunch.recipeId) ? !hasRequiredCoreIngredients(recipesMap.get(selectedPlan.lunch.recipeId)!, pantry) : false}
-            missingIngredients={pantry && selectedPlan.lunch.recipeId && recipesMap.get(selectedPlan.lunch.recipeId) ? getMissingIngredientsForRecipe(recipesMap.get(selectedPlan.lunch.recipeId)!, pantry) : []}
-          />
+            const displayLunchRecipe = menuViewMode === 'inspiration' && currentLunchInspiration
+              ? currentLunchInspiration.recipe
+              : (selectedPlan.lunch.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null);
 
-          <FoodieMealCard
-            slot="dinner"
-            entry={selectedPlan.dinner}
-            recipe={selectedPlan.dinner.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null}
-            dayIndex={selectedDayIndex}
-            onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked)}
-            onSwapClick={() => handleSwapClick(selectedDayIndex, 'dinner')}
-            onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-            onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'dinner', isCraving)}
-            onToggleDiningOut={(isOut) => handleToggleDiningOut(selectedDayIndex, isOut)}
-            wifePhone={wifePhone}
-            showWhatsAppShare={showWhatsAppShare}
-            onUpdateWifePhone={handleUpdateWifePhone}
-            inspiration={currentDinnerInspiration}
-            onSelectInspiration={(id) => handleSelectInspiration('dinner', id)}
-            onShuffleInspiration={() => handleShuffleInspiration('dinner')}
-            isMissingInFridge={pantry && selectedPlan.dinner.recipeId && recipesMap.get(selectedPlan.dinner.recipeId) ? !hasRequiredCoreIngredients(recipesMap.get(selectedPlan.dinner.recipeId)!, pantry) : false}
-            missingIngredients={pantry && selectedPlan.dinner.recipeId && recipesMap.get(selectedPlan.dinner.recipeId) ? getMissingIngredientsForRecipe(recipesMap.get(selectedPlan.dinner.recipeId)!, pantry) : []}
-          />
+            const displayDinnerRecipe = menuViewMode === 'inspiration' && currentDinnerInspiration
+              ? currentDinnerInspiration.recipe
+              : (selectedPlan.dinner.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null);
+
+            return (
+              <>
+                <FoodieMealCard
+                  slot="breakfast"
+                  entry={selectedPlan.breakfast}
+                  recipe={displayBreakfastRecipe}
+                  dayIndex={selectedDayIndex}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked)}
+                  onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
+                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'breakfast', isCraving)}
+                  wifePhone={wifePhone}
+                  showWhatsAppShare={showWhatsAppShare}
+                  onUpdateWifePhone={handleUpdateWifePhone}
+                  inspiration={menuViewMode === 'fridge' ? currentBreakfastInspiration : null}
+                  onSelectInspiration={(id) => handleSelectInspiration('breakfast', id)}
+                  onShuffleInspiration={() => handleShuffleInspiration('breakfast')}
+                  isMissingInFridge={pantry && displayBreakfastRecipe ? !hasRequiredCoreIngredients(displayBreakfastRecipe, pantry) : false}
+                  missingIngredients={pantry && displayBreakfastRecipe ? getMissingIngredientsForRecipe(displayBreakfastRecipe, pantry) : []}
+                  isViewingInspiration={menuViewMode === 'inspiration'}
+                  onCommitInspiration={() => displayBreakfastRecipe && handleSelectInspiration('breakfast', displayBreakfastRecipe.id)}
+                />
+
+                <FoodieMealCard
+                  slot="lunch"
+                  entry={selectedPlan.lunch}
+                  recipe={displayLunchRecipe}
+                  dayIndex={selectedDayIndex}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked)}
+                  onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
+                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'lunch', isCraving)}
+                  wifePhone={wifePhone}
+                  showWhatsAppShare={showWhatsAppShare}
+                  onUpdateWifePhone={handleUpdateWifePhone}
+                  inspiration={menuViewMode === 'fridge' ? currentLunchInspiration : null}
+                  onSelectInspiration={(id) => handleSelectInspiration('lunch', id)}
+                  onShuffleInspiration={() => handleShuffleInspiration('lunch')}
+                  isMissingInFridge={pantry && displayLunchRecipe ? !hasRequiredCoreIngredients(displayLunchRecipe, pantry) : false}
+                  missingIngredients={pantry && displayLunchRecipe ? getMissingIngredientsForRecipe(displayLunchRecipe, pantry) : []}
+                  isViewingInspiration={menuViewMode === 'inspiration'}
+                  onCommitInspiration={() => displayLunchRecipe && handleSelectInspiration('lunch', displayLunchRecipe.id)}
+                />
+
+                <FoodieMealCard
+                  slot="dinner"
+                  entry={selectedPlan.dinner}
+                  recipe={displayDinnerRecipe}
+                  dayIndex={selectedDayIndex}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked)}
+                  onSwapClick={() => handleSwapClick(selectedDayIndex, 'dinner')}
+                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'dinner', isCraving)}
+                  onToggleDiningOut={(isOut) => handleToggleDiningOut(selectedDayIndex, isOut)}
+                  wifePhone={wifePhone}
+                  showWhatsAppShare={showWhatsAppShare}
+                  onUpdateWifePhone={handleUpdateWifePhone}
+                  inspiration={menuViewMode === 'fridge' ? currentDinnerInspiration : null}
+                  onSelectInspiration={(id) => handleSelectInspiration('dinner', id)}
+                  onShuffleInspiration={() => handleShuffleInspiration('dinner')}
+                  isMissingInFridge={pantry && displayDinnerRecipe ? !hasRequiredCoreIngredients(displayDinnerRecipe, pantry) : false}
+                  missingIngredients={pantry && displayDinnerRecipe ? getMissingIngredientsForRecipe(displayDinnerRecipe, pantry) : []}
+                  isViewingInspiration={menuViewMode === 'inspiration'}
+                  onCommitInspiration={() => displayDinnerRecipe && handleSelectInspiration('dinner', displayDinnerRecipe.id)}
+                />
+              </>
+            );
+          })()}
         </div>
       </main>
 
