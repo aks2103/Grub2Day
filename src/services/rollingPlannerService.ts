@@ -153,10 +153,21 @@ export async function replanUpcomingSlotsFromPantry(
   const finalPlans: DayMealPlan[] = [];
   const cycleUsedRecipeIds = new Set<string>();
 
-  const todayPlan = currentSixDays[0] 
+  let todayPlan = currentSixDays[0] 
     ? JSON.parse(JSON.stringify(currentSixDays[0])) as DayMealPlan
     : null;
   const affectedSlots: string[] = [];
+
+  if (!todayPlan) {
+    todayPlan = generateSingleDayPlan(
+      todayStr,
+      allRecipes,
+      updatedPantry,
+      cycleUsedRecipeIds,
+      historyCooldown.bannedRecipeIds,
+      settings
+    );
+  }
 
   if (todayPlan) {
     const todayUsedIds = new Set<string>();

@@ -6,7 +6,7 @@ import { getLocalizedRecipe } from '../i18n/recipeLocalization';
 
 interface FoodieMealCardProps {
   slot: MealSlot;
-  entry: MealSlotEntry;
+  entry?: MealSlotEntry | null;
   recipe?: Recipe | null;
   dayIndex: number;
   onMarkCooked: (isCooked: boolean) => void;
@@ -69,6 +69,14 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   const meta = SLOT_STYLES[slot];
   const t = TRANSLATIONS[language];
 
+  const safeEntry: MealSlotEntry = entry || {
+    recipeId: recipe?.id || null,
+    isCooked: false,
+    husbandHadProteinBooster: true,
+    isHusbandCraving: false,
+    isDiningOut: false,
+  };
+
   const handleShareWithWife = () => {
     if (!recipe) return;
     let targetPhone = wifePhone || localStorage.getItem('wife_whatsapp_phone') || '';
@@ -104,7 +112,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   };
 
   // Dining Out Card
-  if (entry.isDiningOut) {
+  if (safeEntry.isDiningOut) {
     return (
       <div className="bg-gradient-to-r from-orange-50/70 to-amber-50/70 rounded-2xl border border-orange-200 p-3.5 shadow-2xs">
         <div className="flex items-center justify-between mb-1.5">
@@ -154,7 +162,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
     );
   }
 
-  const isCooked = entry.isCooked;
+  const isCooked = safeEntry.isCooked;
   const regionKey = (recipe.region || 'north') as 'north' | 'south' | 'west' | 'east';
   const regionLabel = t.regions[regionKey] || t.regions.north;
   const regionIcon = REGION_ICONS[regionKey] || '🏔️';
@@ -170,18 +178,18 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
     } p-3.5 relative overflow-hidden`}>
 
       {/* Top Slot Header: Clean & Never Clips Cooking Time or Badges */}
-      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-base">{meta.emoji}</span>
-          <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${meta.badge}`}>
+      <div className="flex items-center justify-between gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+          <span className="text-base flex-shrink-0">{meta.emoji}</span>
+          <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${meta.badge} flex-shrink-0`}>
             {t[slot]}
           </span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-0.5">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-0.5 flex-shrink-0">
             <span>{regionIcon}</span>
             <span>{regionLabel}</span>
           </span>
           {isMissingInFridge && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-0.5">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-0.5 flex-shrink-0">
               <span>💡</span>
               <span>{t.inspirationBadge}</span>
             </span>
@@ -189,12 +197,12 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
         </div>
 
         {/* Nutritional & Cooking Time Pills (Always Anchored & Fully Visible) */}
-        <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-black shadow-2xs">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-black shadow-2xs whitespace-nowrap">
             <Dumbbell className="w-3 h-3 text-emerald-600 flex-shrink-0" />
             <span>{totalProtein}{t.proteinShort}</span>
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 text-orange-900 border border-orange-200 text-[11px] font-bold shadow-2xs">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 text-orange-900 border border-orange-200 text-[11px] font-bold shadow-2xs whitespace-nowrap">
             <Clock className="w-3 h-3 text-orange-600 flex-shrink-0" />
             <span>{recipe.prepTimeMinutes || 20}{t.minsShort}</span>
           </span>
@@ -238,16 +246,16 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
       {showWhatsAppShare ? (
         <div className="bg-gradient-to-r from-rose-50/80 to-amber-50/80 rounded-xl p-1.5 border border-rose-200/70 mb-2.5 grid grid-cols-2 gap-1.5">
           <button
-            onClick={() => onToggleCraving && onToggleCraving(!entry.isHusbandCraving)}
+            onClick={() => onToggleCraving && onToggleCraving(!safeEntry.isHusbandCraving)}
             className={`h-9 px-2 rounded-lg text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
-              entry.isHusbandCraving
+              safeEntry.isHusbandCraving
                 ? 'bg-rose-500 text-white shadow-2xs'
                 : 'bg-white hover:bg-rose-100 text-rose-700 border border-rose-200'
             }`}
             title="Mark this as a craving today"
           >
-            <Heart className={`w-3.5 h-3.5 flex-shrink-0 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
-            <span className="truncate">{entry.isHusbandCraving ? t.markedCraving : t.cravingButton}</span>
+            <Heart className={`w-3.5 h-3.5 flex-shrink-0 ${safeEntry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
+            <span className="truncate">{safeEntry.isHusbandCraving ? t.markedCraving : t.cravingButton}</span>
           </button>
 
           <button
@@ -262,16 +270,16 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
       ) : (
         <div className="mb-2.5">
           <button
-            onClick={() => onToggleCraving && onToggleCraving(!entry.isHusbandCraving)}
+            onClick={() => onToggleCraving && onToggleCraving(!safeEntry.isHusbandCraving)}
             className={`w-full h-9 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
-              entry.isHusbandCraving
+              safeEntry.isHusbandCraving
                 ? 'bg-rose-500 text-white shadow-xs ring-2 ring-rose-200'
                 : 'bg-rose-50/70 hover:bg-rose-100 text-rose-700 border border-rose-200/80'
             }`}
             title="Mark this as a craving today"
           >
-            <Heart className={`w-3.5 h-3.5 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
-            <span>{entry.isHusbandCraving ? t.markedCraving : t.cravingButton}</span>
+            <Heart className={`w-3.5 h-3.5 ${safeEntry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
+            <span>{safeEntry.isHusbandCraving ? t.markedCraving : t.cravingButton}</span>
           </button>
         </div>
       )}

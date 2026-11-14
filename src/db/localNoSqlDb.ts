@@ -17,6 +17,15 @@ const STORAGE_KEYS = {
 
 export class LocalNoSqlDb implements IDatabaseProvider {
   private listeners: Set<(event: { collection: string; id: string }) => void> = new Set();
+  private userId: string | null = null;
+
+  setUserId(userId: string | null): void {
+    this.userId = userId;
+  }
+
+  private getKey(base: string): string {
+    return this.userId ? `${base}_${this.userId}` : base;
+  }
 
   async init(): Promise<void> {
     // 1. Seed & update recipes with Pan-Indian library (North, South, East, West)
@@ -35,7 +44,8 @@ export class LocalNoSqlDb implements IDatabaseProvider {
     }
 
     // 2. Initialize default pantry if not present
-    const existingPantry = localStorage.getItem(STORAGE_KEYS.PANTRY);
+    const pantryKey = this.getKey(STORAGE_KEYS.PANTRY);
+    const existingPantry = localStorage.getItem(pantryKey);
     if (!existingPantry) {
       const defaultPantry: PantryState = {
         id: 'current',
@@ -49,11 +59,12 @@ export class LocalNoSqlDb implements IDatabaseProvider {
         ],
         lastUpdated: new Date().toISOString(),
       };
-      localStorage.setItem(STORAGE_KEYS.PANTRY, JSON.stringify(defaultPantry));
+      localStorage.setItem(pantryKey, JSON.stringify(defaultPantry));
     }
 
     // 3. Initialize default settings if not present
-    const existingSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const settingsKey = this.getKey(STORAGE_KEYS.SETTINGS);
+    const existingSettings = localStorage.getItem(settingsKey);
     if (!existingSettings) {
       const defaultSettings: UserHouseholdSettings = {
         isOnboarded: false,
@@ -69,7 +80,7 @@ export class LocalNoSqlDb implements IDatabaseProvider {
         cooldownDays: APP_CONFIG.cooldownDays,
         familyMembersNote: 'Parents + 2 young kids (<4 years, <6 months)',
       };
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(defaultSettings));
+      localStorage.setItem(settingsKey, JSON.stringify(defaultSettings));
     }
   }
 
@@ -116,7 +127,7 @@ export class LocalNoSqlDb implements IDatabaseProvider {
 
   // --- Meal Plans & History ---
   async getDayMealPlan(dateStr: string): Promise<DayMealPlan | null> {
-    const raw = localStorage.getItem(STORAGE_KEYS.MEALS);
+    const raw = localStorage.getItem(this.getKey(STORAGE_KEYS.MEALS));
     if (!raw) return null;
     try {
       const mealsMap = JSON.parse(raw) as Record<string, DayMealPlan>;
@@ -127,7 +138,8 @@ export class LocalNoSqlDb implements IDatabaseProvider {
   }
 
   async saveDayMealPlan(plan: DayMealPlan): Promise<void> {
-    const raw = localStorage.getItem(STORAGE_KEYS.MEALS);
+    const mealsKey = this.getKey(STORAGE_KEYS.MEALS);
+    const raw = localStorage.getItem(mealsKey);
     let mealsMap: Record<string, DayMealPlan> = {};
     if (raw) {
       try {
@@ -137,12 +149,12 @@ export class LocalNoSqlDb implements IDatabaseProvider {
       }
     }
     mealsMap[plan.date] = plan;
-    localStorage.setItem(STORAGE_KEYS.MEALS, JSON.stringify(mealsMap));
+    localStorage.setItem(mealsKey, JSON.stringify(mealsMap));
     this.notify({ collection: 'meals', id: plan.date });
   }
 
   async getMealHistory(daysBack: number, referenceDate?: string): Promise<DayMealPlan[]> {
-    const raw = localStorage.getItem(STORAGE_KEYS.MEALS);
+    const raw = localStorage.getItem(this.getKey(STORAGE_KEYS.MEALS));
     if (!raw) return [];
     try {
       const mealsMap = JSON.parse(raw) as Record<string, DayMealPlan>;
@@ -165,7 +177,7 @@ export class LocalNoSqlDb implements IDatabaseProvider {
 
   // --- Pantry State ---
   async getPantry(): Promise<PantryState> {
-    const raw = localStorage.getItem(STORAGE_KEYS.PANTRY);
+    const raw = localStorage.getItem(this.getKey(STORAGE_KEYS.PANTRY));
     if (raw) {
       try {
         return JSON.parse(raw) as PantryState;
@@ -182,20 +194,21 @@ export class LocalNoSqlDb implements IDatabaseProvider {
   }
 
   async savePantry(pantry: PantryState): Promise<void> {
-    localStorage.setItem(STORAGE_KEYS.PANTRY, JSON.stringify(pantry));
+    localStorage.setItem(this.getKey(STORAGE_KEYS.PANTRY), JSON.stringify(pantry));
     this.notify({ collection: 'pantry', id: 'current' });
   }
 
   // --- Household Settings ---
   async getSettings(): Promise<UserHouseholdSettings> {
-    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const settingsKey = this.getKey(STORAGE_KEYS.SETTINGS);
+    const raw = localStorage.getItem(settingsKey);
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as UserHouseholdSettings;
         if (parsed.wifeName === 'Wifey') parsed.wifeName = 'Partner';
         if (parsed.householdName && /wifey/i.test(parsed.householdName)) {
           parsed.householdName = parsed.householdName.replace(/wifey/gi, 'Partner');
-          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(parsed));
+          localStorage.setItem(settingsKey, JSON.stringify(parsed));
         }
         return parsed;
       } catch {
@@ -220,7 +233,7 @@ export class LocalNoSqlDb implements IDatabaseProvider {
   }
 
   async saveSettings(settings: UserHouseholdSettings): Promise<void> {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    localStorage.setItem(this.getKey(STORAGE_KEYS.SETTINGS), JSON.stringify(settings));
     this.notify({ collection: 'settings', id: 'household' });
   }
 

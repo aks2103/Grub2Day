@@ -6,6 +6,7 @@ import { FoodieSwapSheet } from './components/FoodieSwapSheet';
 import { FoodiePantrySheet } from './components/FoodiePantrySheet';
 import { HowToCookModal } from './components/HowToCookModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
@@ -14,6 +15,8 @@ import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFrom
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { getInspirationRecipes, getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from './services/pantryService';
+import { signInWithGoogle, signOutUser, subscribeToAuthState } from './services/authService';
+import { User } from 'firebase/auth';
 import { TRANSLATIONS } from './i18n/translations';
 import { APP_CONFIG } from './config/env';
 import { Sparkles, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -42,6 +45,7 @@ export const App: React.FC = () => {
   const [pantry, setPantry] = useState<PantryState | null>(null);
   const [sixDayPlans, setSixDayPlans] = useState<DayMealPlan[]>([]);
   const [settings, setSettings] = useState<UserHouseholdSettings | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
@@ -200,6 +204,59 @@ export const App: React.FC = () => {
       cleanupPromise.then(cleanup => cleanup && cleanup());
     };
   }, [todayStr]);
+
+  // Auth state listener: switches database to user-scoped profile and loads isolated meal plans
+  useEffect(() => {
+    const unsub = subscribeToAuthState(async (user) => {
+      setCurrentUser(user);
+      if (db && db.setUserId) {
+        db.setUserId(user ? user.uid : null);
+        try {
+          setIsReplanning(true);
+          const [allRecs, currentPantry, currentSettings] = await Promise.all([
+            db.getAllRecipes(),
+            db.getPantry(),
+            db.getSettings(),
+          ]);
+          setRecipes(allRecs);
+          setPantry(currentPantry);
+          setSettings(currentSettings);
+          if (currentSettings.wifeWhatsApp) {
+            setWifePhone(currentSettings.wifeWhatsApp);
+          }
+          const plans = await getRollingSixDayPlans(db, todayStr);
+          setSixDayPlans(plans);
+        } catch (err) {
+          console.warn("Grub2Day: Error reloading user scoped data on auth change:", err);
+        } finally {
+          setIsReplanning(false);
+        }
+      }
+    });
+
+    return () => unsub();
+  }, [db, todayStr]);
+
+  const handleSignInWithGoogle = async () => {
+    try {
+      const user = await signInWithGoogle();
+      if (user) {
+        showToast(language === 'hi' ? `नमस्ते ${user.displayName || 'जी'}! स्वागत है` : `Signed in as ${user.displayName || user.email}`);
+      }
+    } catch (err: any) {
+      console.error("Google sign in failed:", err);
+      showToast(err?.message || 'Google Sign-In failed');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      showToast(language === 'hi' ? 'साइन आउट हो गया' : 'Signed out');
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
+  };
 
   // Actions
   const handleSwapClick = async (dayIndex: number, slot: MealSlot) => {
@@ -477,204 +534,209 @@ export const App: React.FC = () => {
         onToggleLanguage={handleToggleLanguage}
         onRefresh={handleRefreshShuffle}
         isRefreshing={isReplanning}
+        currentUser={currentUser}
+        onSignInWithGoogle={handleSignInWithGoogle}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Container Responsive for Mobile, Tablet, and Web */}
-      <main className="flex-1 max-w-md sm:max-w-xl md:max-w-2xl w-full mx-auto px-3 sm:px-4 pb-[max(var(--sab),28px)] flex flex-col">
-        {/* Foodie 6-Day Strip (Responsive for iPhone 13) */}
-        <FoodieDateStrip
-          plans={sixDayPlans}
-          selectedIndex={selectedDayIndex}
-          onSelectIndex={setSelectedDayIndex}
-          recipesMap={recipesMap}
-          language={language}
-        />
+      <ErrorBoundary fallbackTitle={language === 'hi' ? 'भोजन विवरण लोड करने में समस्या आई' : 'Unable to load meal view'}>
+        <main className="flex-1 max-w-md sm:max-w-xl md:max-w-2xl w-full mx-auto px-3 sm:px-4 pb-[max(var(--sab),28px)] flex flex-col">
+          {/* Foodie 6-Day Strip (Responsive for iPhone 13) */}
+          <FoodieDateStrip
+            plans={sixDayPlans}
+            selectedIndex={selectedDayIndex}
+            onSelectIndex={setSelectedDayIndex}
+            recipesMap={recipesMap}
+            language={language}
+          />
 
-        {/* Day Headline & Foodie Vibe */}
-        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-2.5 border border-orange-200/70 mb-2 flex items-center justify-between shadow-2xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <Heart className="w-4 h-4 text-orange-500 fill-orange-500/20 flex-shrink-0" />
-            <div className="min-w-0">
-              <h2 className="font-black text-xs text-slate-900 truncate">
-                {dayTitle}
-              </h2>
-              <p className="text-[11px] font-semibold text-amber-800 leading-tight truncate">
-                {selectedDayIndex === 0
-                  ? t.cookedWithLove
-                  : t.dayOfCycle(selectedDayIndex + 1)}
-              </p>
+          {/* Day Headline & Foodie Vibe */}
+          <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-2.5 border border-orange-200/70 mb-2 flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <Heart className="w-4 h-4 text-orange-500 fill-orange-500/20 flex-shrink-0" />
+              <div className="min-w-0">
+                <h2 className="font-black text-xs text-slate-900 truncate">
+                  {dayTitle}
+                </h2>
+                <p className="text-[11px] font-semibold text-amber-800 leading-tight truncate">
+                  {selectedDayIndex === 0
+                    ? t.cookedWithLove
+                    : t.dayOfCycle(selectedDayIndex + 1)}
+                </p>
+              </div>
             </div>
-          </div>
-          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-orange-800 border border-orange-200 shadow-2xs flex-shrink-0 ml-1.5">
-            {selectedDayIndex === 0 ? t.today : `+${selectedDayIndex}d`}
-          </span>
-        </div>
-
-        {/* View Switcher: In Fridge vs 💡 Food Inspiration */}
-        <div className="bg-amber-100/70 p-1 rounded-2xl flex items-center gap-1 mb-2.5 border border-amber-200/80 shadow-2xs">
-          <button
-            onClick={() => setMenuViewMode('fridge')}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
-              menuViewMode === 'fridge'
-                ? 'bg-white text-orange-950 shadow-2xs'
-                : 'text-amber-800 hover:text-amber-950'
-            }`}
-          >
-            <span>🧊</span>
-            <span>{t.inFridge}</span>
-          </button>
-          <button
-            onClick={() => setMenuViewMode('inspiration')}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
-              menuViewMode === 'inspiration'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs'
-                : 'text-amber-800 hover:text-amber-950'
-            }`}
-          >
-            <span>💡</span>
-            <span>{t.foodInspiration}</span>
-          </button>
-        </div>
-
-        {/* Level 2: Meal Time Slot Segmented Tabs (Breakfast, Lunch, Dinner) */}
-        <div className="flex items-center gap-1.5 p-1 bg-amber-50/90 rounded-2xl border border-amber-200/80 mb-2 shadow-2xs">
-          {SLOT_NAV_CONFIG.map(({ slot, labelEn, labelHi, emoji }) => {
-            const isSelected = selectedMealSlot === slot;
-            const entry = selectedPlan[slot];
-            const isCooked = entry.isCooked;
-            const isCraving = entry.isHusbandCraving;
-            const isDiningOut = slot === 'dinner' && entry.isDiningOut;
-
-            return (
-              <button
-                key={slot}
-                onClick={() => setSelectedMealSlot(slot)}
-                className={`flex-1 py-2 px-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 relative ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs'
-                    : 'bg-white/80 hover:bg-orange-50 text-slate-700 border border-orange-100'
-                }`}
-              >
-                <span className="text-sm">{emoji}</span>
-                <span className="truncate">{language === 'hi' ? labelHi : labelEn}</span>
-                {isCooked && (
-                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black ${
-                    isSelected ? 'bg-white text-emerald-700' : 'bg-emerald-600 text-white'
-                  }`}>
-                    ✓
-                  </span>
-                )}
-                {isCraving && !isCooked && (
-                  <span className="text-[10px]">❤️</span>
-                )}
-                {isDiningOut && (
-                  <span className="text-[10px]">🍕</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Single Swipeable Meal Card (Zero Vertical Clutter) */}
-        <div 
-          className="flex-1 transition-all duration-200 touch-pan-y"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {(() => {
-            const displayRecipe = (() => {
-              if (selectedMealSlot === 'breakfast') {
-                return (menuViewMode === 'inspiration' && currentBreakfastInspiration)
-                  ? currentBreakfastInspiration.recipe
-                  : (selectedPlan?.breakfast?.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null)
-                    || recipes.find(r => r.suitableSlots.includes('breakfast'))
-                    || null;
-              }
-              if (selectedMealSlot === 'lunch') {
-                return (menuViewMode === 'inspiration' && currentLunchInspiration)
-                  ? currentLunchInspiration.recipe
-                  : (selectedPlan?.lunch?.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null)
-                    || recipes.find(r => r.suitableSlots.includes('lunch'))
-                    || null;
-              }
-              return (menuViewMode === 'inspiration' && currentDinnerInspiration)
-                ? currentDinnerInspiration.recipe
-                : (selectedPlan?.dinner?.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null)
-                  || recipes.find(r => r.suitableSlots.includes('dinner'))
-                  || null;
-            })();
-
-            return (
-              <FoodieMealCard
-                key={selectedMealSlot}
-                slot={selectedMealSlot}
-                entry={selectedPlan[selectedMealSlot]}
-                recipe={displayRecipe}
-                dayIndex={selectedDayIndex}
-                onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, selectedMealSlot, isCooked, displayRecipe?.id)}
-                onSwapClick={() => handleSwapClick(selectedDayIndex, selectedMealSlot)}
-                onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-                onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, selectedMealSlot, isCraving)}
-                onToggleDiningOut={selectedMealSlot === 'dinner' ? (isOut) => handleToggleDiningOut(selectedDayIndex, isOut) : undefined}
-                wifePhone={wifePhone}
-                showWhatsAppShare={showWhatsAppShare}
-                onUpdateWifePhone={handleUpdateWifePhone}
-                isMissingInFridge={pantry && displayRecipe ? !hasRequiredCoreIngredients(displayRecipe, pantry) : false}
-                missingIngredients={pantry && displayRecipe ? getMissingIngredientsForRecipe(displayRecipe, pantry, language) : []}
-                language={language}
-              />
-            );
-          })()}
-        </div>
-
-        {/* Bottom Pagination & Swipe Navigation Bar */}
-        <div className="flex items-center justify-between pt-2 px-1 text-slate-500 text-xs">
-          <button
-            onClick={handlePrevSlot}
-            disabled={selectedMealSlot === 'breakfast'}
-            className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 font-bold transition-all ${
-              selectedMealSlot === 'breakfast'
-                ? 'opacity-30 cursor-not-allowed border-transparent text-slate-400'
-                : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
-            }`}
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-extrabold hidden xs:inline">{t.prevMeal}</span>
-          </button>
-
-          {/* Dots / Segment indicators */}
-          <div className="flex items-center gap-1.5">
-            {SLOTS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSelectedMealSlot(s)}
-                className={`transition-all rounded-full ${
-                  selectedMealSlot === s
-                    ? 'w-5 h-2 bg-gradient-to-r from-amber-500 to-orange-500'
-                    : 'w-2 h-2 bg-orange-200 hover:bg-orange-300'
-                }`}
-                title={`Go to ${s}`}
-              />
-            ))}
-            <span className="text-[10px] text-slate-400 font-semibold ml-1">
-              {t.swipeHint}
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-orange-800 border border-orange-200 shadow-2xs flex-shrink-0 ml-1.5">
+              {selectedDayIndex === 0 ? t.today : `+${selectedDayIndex}d`}
             </span>
           </div>
 
-          <button
-            onClick={handleNextSlot}
-            disabled={selectedMealSlot === 'dinner'}
-            className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 font-bold transition-all ${
-              selectedMealSlot === 'dinner'
-                ? 'opacity-30 cursor-not-allowed border-transparent text-slate-400'
-                : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
-            }`}
+          {/* View Switcher: In Fridge vs 💡 Food Inspiration */}
+          <div className="bg-amber-100/70 p-1 rounded-2xl flex items-center gap-1 mb-2.5 border border-amber-200/80 shadow-2xs">
+            <button
+              onClick={() => setMenuViewMode('fridge')}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                menuViewMode === 'fridge'
+                  ? 'bg-white text-orange-950 shadow-2xs'
+                  : 'text-amber-800 hover:text-amber-950'
+              }`}
+            >
+              <span>🧊</span>
+              <span>{t.inFridge}</span>
+            </button>
+            <button
+              onClick={() => setMenuViewMode('inspiration')}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                menuViewMode === 'inspiration'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs'
+                  : 'text-amber-800 hover:text-amber-950'
+              }`}
+            >
+              <span>💡</span>
+              <span>{t.foodInspiration}</span>
+            </button>
+          </div>
+
+          {/* Level 2: Meal Time Slot Segmented Tabs (Breakfast, Lunch, Dinner) */}
+          <div className="flex items-center gap-1.5 p-1 bg-amber-50/90 rounded-2xl border border-amber-200/80 mb-2 shadow-2xs">
+            {SLOT_NAV_CONFIG.map(({ slot, labelEn, labelHi, emoji }) => {
+              const isSelected = selectedMealSlot === slot;
+              const entry = selectedPlan ? selectedPlan[slot] : null;
+              const isCooked = !!entry?.isCooked;
+              const isCraving = !!entry?.isHusbandCraving;
+              const isDiningOut = slot === 'dinner' && !!entry?.isDiningOut;
+
+              return (
+                <button
+                  key={slot}
+                  onClick={() => setSelectedMealSlot(slot)}
+                  className={`flex-1 py-2 px-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 relative ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs'
+                      : 'bg-white/80 hover:bg-orange-50 text-slate-700 border border-orange-100'
+                  }`}
+                >
+                  <span className="text-sm">{emoji}</span>
+                  <span className="truncate">{language === 'hi' ? labelHi : labelEn}</span>
+                  {isCooked && (
+                    <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black ${
+                      isSelected ? 'bg-white text-emerald-700' : 'bg-emerald-600 text-white'
+                    }`}>
+                      ✓
+                    </span>
+                  )}
+                  {isCraving && !isCooked && (
+                    <span className="text-[10px]">❤️</span>
+                  )}
+                  {isDiningOut && (
+                    <span className="text-[10px]">🍕</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Single Swipeable Meal Card (Zero Vertical Clutter) */}
+          <div 
+            className="flex-1 transition-all duration-200 touch-pan-y"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            <span className="text-[11px] font-extrabold hidden xs:inline">{t.nextMeal}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </main>
+            {(() => {
+              const displayRecipe = (() => {
+                if (selectedMealSlot === 'breakfast') {
+                  return (menuViewMode === 'inspiration' && currentBreakfastInspiration)
+                    ? currentBreakfastInspiration.recipe
+                    : (selectedPlan?.breakfast?.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null)
+                      || recipes.find(r => r.suitableSlots.includes('breakfast'))
+                      || null;
+                }
+                if (selectedMealSlot === 'lunch') {
+                  return (menuViewMode === 'inspiration' && currentLunchInspiration)
+                    ? currentLunchInspiration.recipe
+                    : (selectedPlan?.lunch?.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null)
+                      || recipes.find(r => r.suitableSlots.includes('lunch'))
+                      || null;
+                }
+                return (menuViewMode === 'inspiration' && currentDinnerInspiration)
+                  ? currentDinnerInspiration.recipe
+                  : (selectedPlan?.dinner?.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null)
+                    || recipes.find(r => r.suitableSlots.includes('dinner'))
+                    || null;
+              })();
+
+              return (
+                <FoodieMealCard
+                  key={selectedMealSlot}
+                  slot={selectedMealSlot}
+                  entry={selectedPlan ? selectedPlan[selectedMealSlot] : null}
+                  recipe={displayRecipe}
+                  dayIndex={selectedDayIndex}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, selectedMealSlot, isCooked, displayRecipe?.id)}
+                  onSwapClick={() => handleSwapClick(selectedDayIndex, selectedMealSlot)}
+                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, selectedMealSlot, isCraving)}
+                  onToggleDiningOut={selectedMealSlot === 'dinner' ? (isOut) => handleToggleDiningOut(selectedDayIndex, isOut) : undefined}
+                  wifePhone={wifePhone}
+                  showWhatsAppShare={showWhatsAppShare}
+                  onUpdateWifePhone={handleUpdateWifePhone}
+                  isMissingInFridge={pantry && displayRecipe ? !hasRequiredCoreIngredients(displayRecipe, pantry) : false}
+                  missingIngredients={pantry && displayRecipe ? getMissingIngredientsForRecipe(displayRecipe, pantry, language) : []}
+                  language={language}
+                />
+              );
+            })()}
+          </div>
+
+          {/* Bottom Pagination & Swipe Navigation Bar */}
+          <div className="flex items-center justify-between pt-2 px-1 text-slate-500 text-xs">
+            <button
+              onClick={handlePrevSlot}
+              disabled={selectedMealSlot === 'breakfast'}
+              className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 font-bold transition-all ${
+                selectedMealSlot === 'breakfast'
+                  ? 'opacity-30 cursor-not-allowed border-transparent text-slate-400'
+                  : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
+              }`}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-extrabold hidden xs:inline">{t.prevMeal}</span>
+            </button>
+
+            {/* Dots / Segment indicators */}
+            <div className="flex items-center gap-1.5">
+              {SLOTS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSelectedMealSlot(s)}
+                  className={`transition-all rounded-full ${
+                    selectedMealSlot === s
+                      ? 'w-5 h-2 bg-gradient-to-r from-amber-500 to-orange-500'
+                      : 'w-2 h-2 bg-orange-200 hover:bg-orange-300'
+                  }`}
+                  title={`Go to ${s}`}
+                />
+              ))}
+              <span className="text-[10px] text-slate-400 font-semibold ml-1">
+                {t.swipeHint}
+              </span>
+            </div>
+
+            <button
+              onClick={handleNextSlot}
+              disabled={selectedMealSlot === 'dinner'}
+              className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 font-bold transition-all ${
+                selectedMealSlot === 'dinner'
+                  ? 'opacity-30 cursor-not-allowed border-transparent text-slate-400'
+                  : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
+              }`}
+            >
+              <span className="text-[11px] font-extrabold hidden xs:inline">{t.nextMeal}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </main>
+      </ErrorBoundary>
 
       {/* How to Cook Modal (Step-by-step instructions + YouTube App Deep Link) */}
       <HowToCookModal

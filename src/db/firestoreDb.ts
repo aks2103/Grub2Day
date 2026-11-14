@@ -27,9 +27,15 @@ export class FirestoreDbProvider implements IDatabaseProvider {
   private app: FirebaseApp | null = null;
   private db: Firestore | null = null;
   public isConfigured: boolean = false;
+  private userId: string | null = null;
 
   constructor() {
     this.fallbackDb = new LocalNoSqlDb();
+  }
+
+  setUserId(userId: string | null): void {
+    this.userId = userId;
+    this.fallbackDb.setUserId(userId);
   }
 
   async init(): Promise<void> {
@@ -128,12 +134,33 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     await deleteDoc(doc(this.db, 'recipes', id));
   }
 
+  private getMealDocRef(dateStr: string) {
+    if (!this.db) throw new Error("Firestore not initialized");
+    return this.userId 
+      ? doc(this.db, 'users', this.userId, 'meal_plans', dateStr)
+      : doc(this.db, 'meal_plans', dateStr);
+  }
+
+  private getPantryDocRef() {
+    if (!this.db) throw new Error("Firestore not initialized");
+    return this.userId
+      ? doc(this.db, 'users', this.userId, 'data', 'pantry')
+      : doc(this.db, 'household', 'pantry');
+  }
+
+  private getSettingsDocRef() {
+    if (!this.db) throw new Error("Firestore not initialized");
+    return this.userId
+      ? doc(this.db, 'users', this.userId, 'data', 'settings')
+      : doc(this.db, 'household', 'settings');
+  }
+
   async getDayMealPlan(dateStr: string): Promise<DayMealPlan | null> {
     if (!this.isConfigured || !this.db) {
       return this.fallbackDb.getDayMealPlan(dateStr);
     }
     try {
-      const snap = await getDoc(doc(this.db, 'meal_plans', dateStr));
+      const snap = await getDoc(this.getMealDocRef(dateStr));
       if (!snap.exists()) return null;
       return snap.data() as DayMealPlan;
     } catch (err) {
@@ -146,7 +173,12 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     if (!this.isConfigured || !this.db) {
       return this.fallbackDb.saveDayMealPlan(plan);
     }
-    await setDoc(doc(this.db, 'meal_plans', plan.date), plan);
+    try {
+      await setDoc(this.getMealDocRef(plan.date), plan);
+    } catch (err) {
+      console.warn("Firestore saveDayMealPlan failed, using fallback:", err);
+      await this.fallbackDb.saveDayMealPlan(plan);
+    }
   }
 
   async getMealHistory(daysBack: number, referenceDate?: string): Promise<DayMealPlan[]> {
@@ -175,7 +207,7 @@ export class FirestoreDbProvider implements IDatabaseProvider {
       return this.fallbackDb.getPantry();
     }
     try {
-      const snap = await getDoc(doc(this.db, 'household', 'pantry'));
+      const snap = await getDoc(this.getPantryDocRef());
       if (!snap.exists()) {
         const defaultState: PantryState = {
           id: 'current',
@@ -189,7 +221,11 @@ export class FirestoreDbProvider implements IDatabaseProvider {
           ],
           lastUpdated: new Date().toISOString(),
         };
-        await setDoc(doc(this.db, 'household', 'pantry'), defaultState);
+        try {
+          await setDoc(this.getPantryDocRef(), defaultState);
+        } catch {
+          // ignore setDoc error
+        }
         return defaultState;
       }
       return snap.data() as PantryState;
@@ -203,7 +239,12 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     if (!this.isConfigured || !this.db) {
       return this.fallbackDb.savePantry(pantry);
     }
-    await setDoc(doc(this.db, 'household', 'pantry'), pantry);
+    try {
+      await setDoc(this.getPantryDocRef(), pantry);
+    } catch (err) {
+      console.warn("Firestore savePantry failed, using fallback:", err);
+      await this.fallbackDb.savePantry(pantry);
+    }
   }
 
   async getSettings(): Promise<UserHouseholdSettings> {
@@ -211,10 +252,14 @@ export class FirestoreDbProvider implements IDatabaseProvider {
       return this.fallbackDb.getSettings();
     }
     try {
-      const snap = await getDoc(doc(this.db, 'household', 'settings'));
+      const snap = await getDoc(this.getSettingsDocRef());
       if (!snap.exists()) {
         const initial = await this.fallbackDb.getSettings();
-        await setDoc(doc(this.db, 'household', 'settings'), initial);
+        try {
+          await setDoc(this.getSettingsDocRef(), initial);
+        } catch {
+          // ignore setDoc error
+        }
         return initial;
       }
       return snap.data() as UserHouseholdSettings;
@@ -227,7 +272,12 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     if (!this.isConfigured || !this.db) {
       return this.fallbackDb.saveSettings(settings);
     }
-    await setDoc(doc(this.db, 'household', 'settings'), settings);
+    try {
+      await setDoc(this.getSettingsDocRef(), settings);
+    } catch (err) {
+      console.warn("Firestore saveSettings failed, using fallback:", err);
+      await this.fallbackDb.saveSettings(settings);
+    }
   }
 
   subscribeToChanges(callback: (event: { collection: string; id: string }) => void): () => void {
@@ -236,13 +286,19 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     }
     // Listen to real-time updates on meal plans collection
     try {
-      const unsub = onSnapshot(collection(this.db, 'meal_plans'), (snapshot) => {
+      const plansColl = this.userId 
+        ? collection(this.db, 'users', this.userId, 'meal_plans')
+        : collection(this.db, 'meal_plans');
+
+      const unsub = onSnapshot(plansColl, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           callback({
             collection: 'meal_plans',
             id: change.doc.id,
           });
         });
+      }, (err) => {
+        console.warn("Firestore onSnapshot error ignored:", err);
       });
       return unsub;
     } catch (err) {

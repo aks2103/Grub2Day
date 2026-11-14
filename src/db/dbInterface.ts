@@ -6,6 +6,9 @@
 import { Recipe, DayMealPlan, PantryState, UserHouseholdSettings } from '../types';
 
 export interface IDatabaseProvider {
+  // User Scope for Multi-User / Family Profiles
+  setUserId?(userId: string | null): void;
+
   // Initialization & Seeding
   init(): Promise<void>;
 
