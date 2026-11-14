@@ -318,16 +318,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleFullReplan = async () => {
-    if (!db) return;
-    setIsReplanning(true);
-    showToast("Re-planning 6-day Pan-Indian menu...");
-    const freshPlans = await cascadeReplanFutureDays(db, [null, null, null, null, null, null], -1, todayStr);
-    setSixDayPlans(freshPlans);
-    setIsReplanning(false);
-    showToast("✨ Fresh 6-day cycle ready! Balanced & delicious.");
-  };
-
   const handleUpdatePantry = async (updatedPantry: PantryState) => {
     if (!db) return;
     await db.savePantry(updatedPantry);
@@ -363,8 +353,15 @@ export const App: React.FC = () => {
     setSettings(newSettings);
     setWifePhone(newSettings.wifeWhatsApp);
     setOnboardingOpen(false);
-    showToast(`✨ Welcome ${newSettings.husbandName} & ${newSettings.wifeName}! Customizing menu...`);
-    await handleFullReplan();
+    showToast(`✨ Food preferences saved! Refreshing menu...`);
+    setIsReplanning(true);
+
+    const currentPantry = (await db.getPantry()) || pantry;
+    if (currentPantry) {
+      const refreshed = await shuffleAndReplanCycle(db, sixDayPlans, todayStr, currentPantry);
+      setSixDayPlans(refreshed);
+    }
+    setIsReplanning(false);
   };
 
   // State for cycling through 💡 inspiration recipes per slot
@@ -402,20 +399,20 @@ export const App: React.FC = () => {
   const breakfastInspirations = useMemo(() => {
     if (!pantry || recipes.length === 0 || !selectedPlan) return [];
     const currentId = selectedPlan.breakfast?.recipeId;
-    return getInspirationRecipes('breakfast', recipes, pantry, currentId);
-  }, [recipes, pantry, selectedPlan?.breakfast?.recipeId]);
+    return getInspirationRecipes('breakfast', recipes, pantry, currentId, undefined, language, settings);
+  }, [recipes, pantry, selectedPlan?.breakfast?.recipeId, language, settings]);
 
   const lunchInspirations = useMemo(() => {
     if (!pantry || recipes.length === 0 || !selectedPlan) return [];
     const currentId = selectedPlan.lunch?.recipeId;
-    return getInspirationRecipes('lunch', recipes, pantry, currentId);
-  }, [recipes, pantry, selectedPlan?.lunch?.recipeId]);
+    return getInspirationRecipes('lunch', recipes, pantry, currentId, undefined, language, settings);
+  }, [recipes, pantry, selectedPlan?.lunch?.recipeId, language, settings]);
 
   const dinnerInspirations = useMemo(() => {
     if (!pantry || recipes.length === 0 || !selectedPlan) return [];
     const currentId = selectedPlan.dinner?.recipeId;
-    return getInspirationRecipes('dinner', recipes, pantry, currentId);
-  }, [recipes, pantry, selectedPlan?.dinner?.recipeId]);
+    return getInspirationRecipes('dinner', recipes, pantry, currentId, undefined, language, settings);
+  }, [recipes, pantry, selectedPlan?.dinner?.recipeId, language, settings]);
 
   const currentBreakfastInspiration = useMemo(() => {
     if (breakfastInspirations.length === 0) return null;

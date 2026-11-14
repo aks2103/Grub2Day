@@ -4,9 +4,26 @@
 // ==============================================================================
 
 import { IDatabaseProvider } from '../db/dbInterface';
-import { DayMealPlan, Recipe, MealSlot, PantryState } from '../types';
+import { DayMealPlan, Recipe, MealSlot, PantryState, UserHouseholdSettings } from '../types';
 import { getActiveCooldownReport } from './cooldownService';
 import { rankRecipesByPantry, hasRequiredCoreIngredients, PantryMatchResult } from './pantryService';
+
+function filterRecipesBySettings(recipes: Recipe[], settings?: UserHouseholdSettings | null): Recipe[] {
+  if (!settings) return recipes;
+
+  const disliked = new Set((settings.dislikedIngredients || []).map(d => d.toLowerCase().trim()).filter(Boolean));
+  if (disliked.size === 0) return recipes;
+
+  return recipes.filter(r => {
+    if (r.mainIngredients.some(ing => disliked.has(ing.toLowerCase()))) return false;
+    if (disliked.has(r.id.toLowerCase())) return false;
+    const nameLower = r.name.toLowerCase();
+    for (const d of disliked) {
+      if (nameLower.includes(d)) return false;
+    }
+    return true;
+  });
+}
 
 export async function getRollingSixDayPlans(
   db: IDatabaseProvider,
@@ -46,6 +63,7 @@ export async function cascadeReplanFutureDays(
   const allRecipes = await db.getAllRecipes();
   const pantry = await db.getPantry();
   const historyCooldown = await getActiveCooldownReport(db, 6, startDateStr);
+  const settings = await db.getSettings();
 
   const finalPlans: DayMealPlan[] = [];
   const start = new Date(startDateStr);
@@ -62,7 +80,7 @@ export async function cascadeReplanFutureDays(
     let plan = currentSixDays[i];
     if (!plan) {
       // Pick for this day
-      plan = generateSingleDayPlan(dateStr, allRecipes, pantry, cycleUsedRecipeIds, historyCooldown.bannedRecipeIds);
+      plan = generateSingleDayPlan(dateStr, allRecipes, pantry, cycleUsedRecipeIds, historyCooldown.bannedRecipeIds, settings);
       await db.saveDayMealPlan(plan);
     }
 
@@ -85,7 +103,8 @@ export async function cascadeReplanFutureDays(
       allRecipes,
       pantry,
       cycleUsedRecipeIds,
-      historyCooldown.bannedRecipeIds
+      historyCooldown.bannedRecipeIds,
+      settings
     );
 
     // Register in cycle
@@ -123,6 +142,11 @@ export async function replanUpcomingSlotsFromPantry(
 ): Promise<{ plans: DayMealPlan[]; affectedSlots: string[] }> {
   const allRecipes = await db.getAllRecipes();
   const historyCooldown = await getActiveCooldownReport(db, 6, todayStr);
+  const settings = await db.getSettings();
+  const notDisliked = filterRecipesBySettings(allRecipes, settings);
+  const preferredRegions = settings?.preferredRegions && settings.preferredRegions.length > 0
+    ? new Set(settings.preferredRegions)
+    : null;
   const currentHour = new Date().getHours();
 
   const finalPlans: DayMealPlan[] = [];
@@ -145,13 +169,18 @@ export async function replanUpcomingSlotsFromPantry(
       const r = allRecipes.find(x => x.id === todayPlan.breakfast.recipeId);
       if (r) todayUsedCategories.add(r.category);
     } else {
-      // Re-evaluate breakfast with new pantry
-      const eligible = allRecipes.filter(r => 
+      // Re-evaluate breakfast with new pantry & preferences
+      const eligible = notDisliked.filter(r => 
         r.suitableSlots.includes('breakfast') &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
-      const pool = feasible.length > 0 ? feasible : eligible;
+      let regionEligible = eligible;
+      if (preferredRegions && preferredRegions.size > 0) {
+        const inRegion = eligible.filter(r => r.region && preferredRegions.has(r.region));
+        if (inRegion.length > 0) regionEligible = inRegion;
+      }
+      const feasible = regionEligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
+      const pool = feasible.length > 0 ? feasible : (regionEligible.length > 0 ? regionEligible : eligible);
       const ranked = rankRecipesByPantry(pool, updatedPantry);
       const chosen = pickDiverseTopRecipe(ranked);
       if (chosen) {
@@ -175,14 +204,19 @@ export async function replanUpcomingSlotsFromPantry(
       const r = allRecipes.find(x => x.id === todayPlan.lunch.recipeId);
       if (r) todayUsedCategories.add(r.category);
     } else {
-      // Re-evaluate lunch with new pantry
-      const eligible = allRecipes.filter(r => 
+      // Re-evaluate lunch with new pantry & preferences
+      const eligible = notDisliked.filter(r => 
         r.suitableSlots.includes('lunch') &&
         !todayUsedIds.has(r.id) &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
-      const pool = feasible.length > 0 ? feasible : eligible;
+      let regionEligible = eligible;
+      if (preferredRegions && preferredRegions.size > 0) {
+        const inRegion = eligible.filter(r => r.region && preferredRegions.has(r.region));
+        if (inRegion.length > 0) regionEligible = inRegion;
+      }
+      const feasible = regionEligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
+      const pool = feasible.length > 0 ? feasible : (regionEligible.length > 0 ? regionEligible : eligible);
       const ranked = rankRecipesByPantry(pool, updatedPantry);
       const chosen = pickDiverseTopRecipe(ranked);
       if (chosen) {
@@ -204,14 +238,19 @@ export async function replanUpcomingSlotsFromPantry(
       todayUsedIds.add(todayPlan.dinner.recipeId);
       if (!todayPlan.dinner.isDiningOut) cycleUsedRecipeIds.add(todayPlan.dinner.recipeId);
     } else {
-      // Re-evaluate dinner with new pantry (must be distinct from today's breakfast & lunch)
-      const eligible = allRecipes.filter(r => 
+      // Re-evaluate dinner with new pantry & preferences (distinct from today's breakfast & lunch)
+      const eligible = notDisliked.filter(r => 
         r.suitableSlots.includes('dinner') &&
         !todayUsedIds.has(r.id) &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
-      const basePool = feasible.length > 0 ? feasible : eligible;
+      let regionEligible = eligible;
+      if (preferredRegions && preferredRegions.size > 0) {
+        const inRegion = eligible.filter(r => r.region && preferredRegions.has(r.region));
+        if (inRegion.length > 0) regionEligible = inRegion;
+      }
+      const feasible = regionEligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
+      const basePool = feasible.length > 0 ? feasible : (regionEligible.length > 0 ? regionEligible : eligible);
 
       const diverse = basePool.filter(r => !todayUsedCategories.has(r.category));
       const pool = diverse.length > 0 ? diverse : basePool;
@@ -234,7 +273,7 @@ export async function replanUpcomingSlotsFromPantry(
     finalPlans.push(todayPlan);
   }
 
-  // 4. Cascade future days 1 to 5 to avoid any repeats with today & prioritize new pantry
+  // 4. Cascade future days 1 to 5 to avoid any repeats with today & strictly prioritize preferences
   const start = new Date(todayStr);
   for (let i = 1; i < 6; i++) {
     const d = new Date(start);
@@ -246,7 +285,8 @@ export async function replanUpcomingSlotsFromPantry(
       allRecipes,
       updatedPantry,
       cycleUsedRecipeIds,
-      historyCooldown.bannedRecipeIds
+      historyCooldown.bannedRecipeIds,
+      settings
     );
 
     if (newDayPlan.breakfast.recipeId) cycleUsedRecipeIds.add(newDayPlan.breakfast.recipeId);
@@ -265,30 +305,46 @@ function generateSingleDayPlan(
   allRecipes: Recipe[],
   pantry: any,
   cycleUsedIds: Set<string>,
-  historicalBannedIds: Set<string>
+  historicalBannedIds: Set<string>,
+  settings?: UserHouseholdSettings | null
 ): DayMealPlan {
   // Intra-day tracker: ensures breakfast, lunch, and dinner NEVER share the same dish
   const dayUsedIds = new Set<string>();
   const dayUsedCategories = new Set<string>();
 
+  const notDisliked = filterRecipesBySettings(allRecipes, settings);
+  const preferredRegions = settings?.preferredRegions && settings.preferredRegions.length > 0
+    ? new Set(settings.preferredRegions)
+    : null;
+
   const pickDish = (slot: MealSlot, preferredCategoryExclusion?: string): string | null => {
     // 1. Strict anti-repetition: exclude anything used in past 6 days history,
     //    anything used anywhere in the 6-day cycle, and anything used today!
-    const eligible = allRecipes.filter(r => 
+    const eligible = notDisliked.filter(r => 
       r.suitableSlots.includes(slot) &&
       !cycleUsedIds.has(r.id) &&
       !historicalBannedIds.has(r.id) &&
       !dayUsedIds.has(r.id)
     );
 
-    // 2. Strict Core Ingredient Feasibility:
+    // 2. Region Preference Filtering:
+    // If user specified preferred regions (e.g. Chinese, Street Food, North), strongly prioritize them!
+    let regionFiltered = eligible;
+    if (preferredRegions && preferredRegions.size > 0) {
+      const inRegion = eligible.filter(r => r.region && preferredRegions.has(r.region));
+      if (inRegion.length > 0) {
+        regionFiltered = inRegion;
+      }
+    }
+
+    // 3. Strict Core Ingredient Feasibility:
     // When the pantry is updated, prioritize dishes whose core ingredients are present
-    const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, pantry));
+    const feasible = regionFiltered.filter(r => hasRequiredCoreIngredients(r, pantry));
     const basePool = feasible.length > 0 ? feasible : (
-      eligible.length > 0 ? eligible : allRecipes.filter(r => r.suitableSlots.includes(slot))
+      regionFiltered.length > 0 ? regionFiltered : eligible
     );
 
-    // 3. Apply category diversity ONLY among feasible candidates
+    // 4. Apply category diversity ONLY among feasible candidates
     let candidates = basePool;
     if (preferredCategoryExclusion && basePool.length > 1) {
       const diverse = basePool.filter(r => r.category !== preferredCategoryExclusion && !dayUsedCategories.has(r.category));
@@ -346,6 +402,8 @@ function generateSingleDayPlan(
  * preserving:
  * - 6-day zero duplicates
  * - Zero intra-day repeats (breakfast != lunch != dinner)
+ * - User cuisine preferences (Chinese, Street Food, Regional)
+ * - User disliked ingredient exclusions
  * - Pantry ingredient feasibility
  * - Respects cooked dishes
  */
@@ -357,6 +415,7 @@ export async function shuffleAndReplanCycle(
 ): Promise<DayMealPlan[]> {
   const allRecipes = await db.getAllRecipes();
   const historyCooldown = await getActiveCooldownReport(db, 6, todayStr);
+  const settings = await db.getSettings();
   const cycleUsedRecipeIds = new Set<string>();
 
   // Lock cooked recipes first
@@ -381,7 +440,8 @@ export async function shuffleAndReplanCycle(
       allRecipes,
       pantry,
       cycleUsedRecipeIds,
-      historyCooldown.bannedRecipeIds
+      historyCooldown.bannedRecipeIds,
+      settings
     );
 
     if (existing) {

@@ -68,17 +68,43 @@ export async function getSwapOptions(
   const allRecipes = await db.getAllRecipes();
   const pantry = await db.getPantry();
   const cooldownReport = await getActiveCooldownReport(db, 6, dateStr);
+  const settings = await db.getSettings();
 
-  const candidates = filterAvailableRecipes(allRecipes, cooldownReport, slot)
+  const disliked = new Set((settings?.dislikedIngredients || []).map(d => d.toLowerCase().trim()).filter(Boolean));
+  const preferredRegions = settings?.preferredRegions && settings.preferredRegions.length > 0
+    ? new Set(settings.preferredRegions)
+    : null;
+
+  const notDisliked = allRecipes.filter(r => {
+    if (disliked.size === 0) return true;
+    if (r.mainIngredients.some(ing => disliked.has(ing.toLowerCase()))) return false;
+    if (disliked.has(r.id.toLowerCase())) return false;
+    const nameLower = r.name.toLowerCase();
+    for (const d of disliked) {
+      if (nameLower.includes(d)) return false;
+    }
+    return true;
+  });
+
+  const available = filterAvailableRecipes(notDisliked, cooldownReport, slot)
     .filter(r => r.id !== currentRecipeId && (!cycleUsedIds || !cycleUsedIds.has(r.id)));
+
+  // Strongly prioritize preferred regions if selected
+  let candidates = available;
+  if (preferredRegions && preferredRegions.size > 0) {
+    const regionMatches = available.filter(r => r.region && preferredRegions.has(r.region));
+    if (regionMatches.length >= 3) {
+      candidates = regionMatches;
+    }
+  }
 
   // If strict filtering leaves fewer than 3, fallback to slot candidates not on cooldown
   const pool = candidates.length >= 3 
     ? candidates 
-    : filterAvailableRecipes(allRecipes, cooldownReport, slot).filter(r => r.id !== currentRecipeId);
+    : filterAvailableRecipes(notDisliked, cooldownReport, slot).filter(r => r.id !== currentRecipeId);
 
   const ranked = rankRecipesByPantry(pool, pantry);
-  return ranked.slice(0, 5).map(r => r.recipe);
+  return ranked.slice(0, 8).map(r => r.recipe);
 }
 
 export async function updateMealSlot(

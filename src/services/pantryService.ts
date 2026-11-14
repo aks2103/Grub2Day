@@ -3,7 +3,7 @@
 // Prioritizes recipes matching fresh vegetables and staples on hand
 // ==============================================================================
 
-import { Recipe, PantryState } from '../types';
+import { Recipe, PantryState, UserHouseholdSettings } from '../types';
 
 export interface PantryItemMeta {
   id: string;
@@ -435,9 +435,26 @@ export function getInspirationRecipes(
   pantry: PantryState,
   currentRecipeId?: string | null,
   excludeIds?: Set<string>,
-  language: 'en' | 'hi' = 'en'
+  language: 'en' | 'hi' = 'en',
+  settings?: UserHouseholdSettings | null
 ): { recipe: Recipe; missingIngredients: string[] }[] {
-  const candidates = allRecipes.filter(r => 
+  const disliked = new Set((settings?.dislikedIngredients || []).map(d => d.toLowerCase().trim()).filter(Boolean));
+  const preferredRegions = settings?.preferredRegions && settings.preferredRegions.length > 0
+    ? new Set(settings.preferredRegions)
+    : null;
+
+  const notDisliked = allRecipes.filter(r => {
+    if (disliked.size === 0) return true;
+    if (r.mainIngredients.some(ing => disliked.has(ing.toLowerCase()))) return false;
+    if (disliked.has(r.id.toLowerCase())) return false;
+    const nameLower = r.name.toLowerCase();
+    for (const d of disliked) {
+      if (nameLower.includes(d)) return false;
+    }
+    return true;
+  });
+
+  const candidates = notDisliked.filter(r => 
     r.suitableSlots.includes(slot as any) &&
     r.id !== currentRecipeId &&
     (!excludeIds || !excludeIds.has(r.id))
@@ -445,7 +462,15 @@ export function getInspirationRecipes(
 
   // We want dishes that CANNOT be made from the fridge right now (missing core ingredients)
   const missingCore = candidates.filter(r => !hasRequiredCoreIngredients(r, pantry));
-  const pool = missingCore.length > 0 ? missingCore : candidates;
+  let pool = missingCore.length > 0 ? missingCore : candidates;
+
+  // Strongly prioritize preferred regions if selected
+  if (preferredRegions && preferredRegions.size > 0) {
+    const regionMatches = pool.filter(r => r.region && preferredRegions.has(r.region));
+    if (regionMatches.length > 0) {
+      pool = regionMatches;
+    }
+  }
 
   return pool.map(recipe => ({
     recipe,
