@@ -193,6 +193,10 @@ export class LocalNoSqlDb implements IDatabaseProvider {
       try {
         const parsed = JSON.parse(raw) as UserHouseholdSettings;
         if (parsed.wifeName === 'Wifey') parsed.wifeName = 'Partner';
+        if (parsed.householdName && /wifey/i.test(parsed.householdName)) {
+          parsed.householdName = parsed.householdName.replace(/wifey/gi, 'Partner');
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(parsed));
+        }
         return parsed;
       } catch {
         // fallback

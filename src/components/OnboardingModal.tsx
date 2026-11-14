@@ -95,7 +95,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     const payload: UserHouseholdSettings = {
       isOnboarded: true,
       husbandName: husbandName.trim() || 'Alok',
-      wifeName: wifeName.trim() || 'Wifey',
+      wifeName: wifeName.trim() || 'Partner',
       wifeWhatsApp: cleanedPhone,
       husbandProteinTarget: proteinTarget,
       calorieTarget: 1800,

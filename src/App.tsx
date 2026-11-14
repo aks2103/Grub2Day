@@ -188,10 +188,14 @@ export const App: React.FC = () => {
     isMutatingRef.current = false;
   };
 
-  const handleMarkCooked = async (dayIndex: number, slot: MealSlot, isCooked: boolean) => {
+  const handleMarkCooked = async (dayIndex: number, slot: MealSlot, isCooked: boolean, activeRecipeId?: string) => {
     if (!db || !sixDayPlans[dayIndex]) return;
     const targetPlan = sixDayPlans[dayIndex];
-    const updated = await updateMealSlot(db, targetPlan.date, slot, { isCooked });
+    const patch: Partial<DayMealPlan[MealSlot]> = { isCooked };
+    if (activeRecipeId && activeRecipeId !== targetPlan[slot].recipeId) {
+      patch.recipeId = activeRecipeId;
+    }
+    const updated = await updateMealSlot(db, targetPlan.date, slot, patch);
 
     const updatedPlans = [...sixDayPlans];
     updatedPlans[dayIndex] = updated;
@@ -287,7 +291,7 @@ export const App: React.FC = () => {
   };
 
   // State for cycling through 💡 inspiration recipes per slot
-  const [inspirationOffsets, setInspirationOffsets] = useState<{ breakfast: number; lunch: number; dinner: number }>({
+  const [inspirationOffsets] = useState<{ breakfast: number; lunch: number; dinner: number }>({
     breakfast: 0,
     lunch: 0,
     dinner: 0,
@@ -329,26 +333,7 @@ export const App: React.FC = () => {
     return dinnerInspirations[inspirationOffsets.dinner % dinnerInspirations.length];
   }, [dinnerInspirations, inspirationOffsets.dinner]);
 
-  const handleShuffleInspiration = (slot: MealSlot) => {
-    setInspirationOffsets(prev => ({
-      ...prev,
-      [slot]: prev[slot] + 1
-    }));
-  };
 
-  const handleSelectInspiration = async (slot: MealSlot, newRecipeId: string) => {
-    if (!db) return;
-    const rec = recipesMap.get(newRecipeId);
-    await handleSelectSwapRecipe(newRecipeId, slot, selectedDayIndex);
-    if (pantry && rec) {
-      const missing = getMissingIngredientsForRecipe(rec, pantry);
-      if (missing.length > 0) {
-        showToast(`💡 Swapped to ${rec.name}! Need to get: ${missing.slice(0, 2).join(', ')} 🛒`);
-      } else {
-        showToast(`💡 Swapped to ${rec.name}!`);
-      }
-    }
-  };
 
   if (isLoading || sixDayPlans.length === 0 || !pantry) {
     return (
@@ -447,18 +432,6 @@ export const App: React.FC = () => {
           </button>
         </div>
 
-        {/* Informative Banner when in Food Inspiration Mode */}
-        {menuViewMode === 'inspiration' && (
-          <div className="bg-gradient-to-r from-amber-100/90 via-orange-100/80 to-amber-100/90 rounded-2xl p-2.5 border border-amber-300 text-xs text-amber-950 font-bold mb-2.5 flex items-center justify-between shadow-2xs">
-            <div className="flex items-center gap-2">
-              <span className="text-base">💡</span>
-              <p className="leading-tight text-[11px]">
-                <strong>Chef's Inspiration Active:</strong> Showing gourmet favorites not in your fridge. Tap <em>"Set as Meal"</em> or <em>"Shuffle 🎲"</em> to explore!
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* 3 Foodie Meal Cards (Breakfast, Lunch, Dinner) */}
         <div className="space-y-3 flex-1">
           {(() => {
@@ -481,18 +454,15 @@ export const App: React.FC = () => {
                   entry={selectedPlan.breakfast}
                   recipe={displayBreakfastRecipe}
                   dayIndex={selectedDayIndex}
-                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked)}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked, displayBreakfastRecipe?.id)}
                   onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
                   onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
                   onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'breakfast', isCraving)}
                   wifePhone={wifePhone}
                   showWhatsAppShare={showWhatsAppShare}
                   onUpdateWifePhone={handleUpdateWifePhone}
-                  onShuffleInspiration={() => handleShuffleInspiration('breakfast')}
                   isMissingInFridge={pantry && displayBreakfastRecipe ? !hasRequiredCoreIngredients(displayBreakfastRecipe, pantry) : false}
                   missingIngredients={pantry && displayBreakfastRecipe ? getMissingIngredientsForRecipe(displayBreakfastRecipe, pantry) : []}
-                  isViewingInspiration={menuViewMode === 'inspiration'}
-                  onCommitInspiration={() => displayBreakfastRecipe && handleSelectInspiration('breakfast', displayBreakfastRecipe.id)}
                 />
 
                 <FoodieMealCard
@@ -500,18 +470,15 @@ export const App: React.FC = () => {
                   entry={selectedPlan.lunch}
                   recipe={displayLunchRecipe}
                   dayIndex={selectedDayIndex}
-                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked)}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked, displayLunchRecipe?.id)}
                   onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
                   onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
                   onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'lunch', isCraving)}
                   wifePhone={wifePhone}
                   showWhatsAppShare={showWhatsAppShare}
                   onUpdateWifePhone={handleUpdateWifePhone}
-                  onShuffleInspiration={() => handleShuffleInspiration('lunch')}
                   isMissingInFridge={pantry && displayLunchRecipe ? !hasRequiredCoreIngredients(displayLunchRecipe, pantry) : false}
                   missingIngredients={pantry && displayLunchRecipe ? getMissingIngredientsForRecipe(displayLunchRecipe, pantry) : []}
-                  isViewingInspiration={menuViewMode === 'inspiration'}
-                  onCommitInspiration={() => displayLunchRecipe && handleSelectInspiration('lunch', displayLunchRecipe.id)}
                 />
 
                 <FoodieMealCard
@@ -519,7 +486,7 @@ export const App: React.FC = () => {
                   entry={selectedPlan.dinner}
                   recipe={displayDinnerRecipe}
                   dayIndex={selectedDayIndex}
-                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked)}
+                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked, displayDinnerRecipe?.id)}
                   onSwapClick={() => handleSwapClick(selectedDayIndex, 'dinner')}
                   onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
                   onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'dinner', isCraving)}
@@ -527,11 +494,8 @@ export const App: React.FC = () => {
                   wifePhone={wifePhone}
                   showWhatsAppShare={showWhatsAppShare}
                   onUpdateWifePhone={handleUpdateWifePhone}
-                  onShuffleInspiration={() => handleShuffleInspiration('dinner')}
                   isMissingInFridge={pantry && displayDinnerRecipe ? !hasRequiredCoreIngredients(displayDinnerRecipe, pantry) : false}
                   missingIngredients={pantry && displayDinnerRecipe ? getMissingIngredientsForRecipe(displayDinnerRecipe, pantry) : []}
-                  isViewingInspiration={menuViewMode === 'inspiration'}
-                  onCommitInspiration={() => displayDinnerRecipe && handleSelectInspiration('dinner', displayDinnerRecipe.id)}
                 />
               </>
             );
