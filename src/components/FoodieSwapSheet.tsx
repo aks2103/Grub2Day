@@ -119,7 +119,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
               }`}
             >
               <span>🧊</span>
-              <span>In Fridge Only</span>
+              <span>In Fridge</span>
             </button>
             <button
               onClick={() => { setInspirationFilter('inspiration'); setShowAll(true); }}
@@ -130,7 +130,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
               }`}
             >
               <span>💡</span>
-              <span>Inspirations (To Shop)</span>
+              <span>Food Inspiration</span>
             </button>
           </div>
         )}

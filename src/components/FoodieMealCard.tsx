@@ -406,7 +406,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="text-sm">💡</span>
               <span className="text-[11px] font-black text-amber-950 uppercase tracking-wider">
-                Craving Good Food? (Shop & Cook)
+                Food Inspiration
               </span>
             </div>
             {onShuffleInspiration && (

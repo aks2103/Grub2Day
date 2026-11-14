@@ -417,7 +417,7 @@ export const App: React.FC = () => {
           </span>
         </div>
 
-        {/* View Switcher: Fridge Ready vs 💡 Food Inspiration */}
+        {/* View Switcher: In Fridge vs 💡 Food Inspiration */}
         <div className="bg-amber-100/70 p-1 rounded-2xl flex items-center gap-1 mb-2.5 border border-amber-200/80 shadow-2xs">
           <button
             onClick={() => setMenuViewMode('fridge')}
@@ -428,7 +428,7 @@ export const App: React.FC = () => {
             }`}
           >
             <span>🧊</span>
-            <span>From Fridge ({pantry?.availableVeggies.length || 0})</span>
+            <span>In Fridge</span>
           </button>
           <button
             onClick={() => setMenuViewMode('inspiration')}
@@ -439,7 +439,7 @@ export const App: React.FC = () => {
             }`}
           >
             <span>💡</span>
-            <span>Food Inspiration (Shop & Cook)</span>
+            <span>Food Inspiration</span>
           </button>
         </div>
 
