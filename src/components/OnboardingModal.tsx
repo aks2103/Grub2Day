@@ -41,7 +41,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   // Form states
   const [husbandName, setHusbandName] = useState<string>(initialSettings?.husbandName || 'Alok');
-  const [wifeName, setWifeName] = useState<string>(initialSettings?.wifeName || 'Wifey');
+  const [wifeName, setWifeName] = useState<string>(() => {
+    if (initialSettings?.wifeName && initialSettings.wifeName !== 'Wifey') {
+      return initialSettings.wifeName;
+    }
+    return 'Partner';
+  });
   const [wifeWhatsApp, setWifeWhatsApp] = useState<string>(() => {
     const raw = initialSettings?.wifeWhatsApp || localStorage.getItem('wife_whatsapp_phone') || '';
     return raw.startsWith('91') && raw.length === 12 ? raw.slice(2) : raw;
@@ -101,7 +106,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       cooldownDays: 6,
       familyMembersNote: hasKids ? 'Parents + 2 young kids (<4 years, <6 months)' : 'Couple',
       userEmail: userEmail.trim(),
-      householdName: `${husbandName} & ${wifeName}'s Rasoi`,
+      householdName: `${husbandName.trim() || 'Alok'} & ${wifeName.trim() || 'Partner'}'s Kitchen`,
     };
 
     await onComplete(payload);

@@ -42,7 +42,7 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
                 </h1>
                 {householdName && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100/80 text-orange-900 border border-orange-200/80 truncate max-w-[130px]">
-                    {householdName}
+                    {householdName.replace(/wifey/gi, 'Partner')}
                   </span>
                 )}
               </div>

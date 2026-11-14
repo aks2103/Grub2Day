@@ -6,7 +6,7 @@
 import { IDatabaseProvider } from '../db/dbInterface';
 import { DayMealPlan, Recipe, MealSlot, PantryState } from '../types';
 import { getActiveCooldownReport } from './cooldownService';
-import { rankRecipesByPantry } from './pantryService';
+import { rankRecipesByPantry, hasRequiredCoreIngredients } from './pantryService';
 
 export async function getRollingSixDayPlans(
   db: IDatabaseProvider,
@@ -140,7 +140,9 @@ export async function replanUpcomingSlotsFromPantry(
         r.suitableSlots.includes('breakfast') &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      const ranked = rankRecipesByPantry(eligible, updatedPantry);
+      const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
+      const pool = feasible.length > 0 ? feasible : eligible;
+      const ranked = rankRecipesByPantry(pool, updatedPantry);
       if (ranked.length > 0) {
         todayPlan.breakfast = {
           ...todayPlan.breakfast,
@@ -168,7 +170,9 @@ export async function replanUpcomingSlotsFromPantry(
         !todayUsedIds.has(r.id) &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      const ranked = rankRecipesByPantry(eligible, updatedPantry);
+      const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
+      const pool = feasible.length > 0 ? feasible : eligible;
+      const ranked = rankRecipesByPantry(pool, updatedPantry);
       if (ranked.length > 0) {
         todayPlan.lunch = {
           ...todayPlan.lunch,
@@ -194,9 +198,13 @@ export async function replanUpcomingSlotsFromPantry(
         !todayUsedIds.has(r.id) &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      // Prioritize distinct category from lunch if possible
-      const diverse = eligible.filter(r => !todayUsedCategories.has(r.category));
-      const pool = diverse.length > 0 ? diverse : eligible;
+      // Strictly filter by core ingredient feasibility FIRST (e.g. 0 lentils in stock -> no dal)
+      const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
+      const basePool = feasible.length > 0 ? feasible : eligible;
+
+      // Prioritize distinct category from lunch if possible within feasible recipes
+      const diverse = basePool.filter(r => !todayUsedCategories.has(r.category));
+      const pool = diverse.length > 0 ? diverse : basePool;
       const ranked = rankRecipesByPantry(pool, updatedPantry);
       if (ranked.length > 0) {
         todayPlan.dinner = {
@@ -262,24 +270,21 @@ function generateSingleDayPlan(
       !dayUsedIds.has(r.id)
     );
 
-    // Apply category diversity (e.g. don't do paneer for lunch AND dinner on same day)
-    let candidates = eligible;
-    if (preferredCategoryExclusion && eligible.length > 2) {
-      const diverse = eligible.filter(r => r.category !== preferredCategoryExclusion && !dayUsedCategories.has(r.category));
+    // 2. Strict Core Ingredient Feasibility:
+    // When the pantry is updated, prioritize dishes whose core ingredients are present
+    const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, pantry));
+    const basePool = feasible.length > 0 ? feasible : (
+      eligible.length > 0 ? eligible : allRecipes.filter(r => r.suitableSlots.includes(slot))
+    );
+
+    // 3. Apply category diversity ONLY among feasible candidates
+    let candidates = basePool;
+    if (preferredCategoryExclusion && basePool.length > 1) {
+      const diverse = basePool.filter(r => r.category !== preferredCategoryExclusion && !dayUsedCategories.has(r.category));
       if (diverse.length > 0) candidates = diverse;
     }
 
-    const pool = candidates.length > 0 
-      ? candidates 
-      : (eligible.length > 0 
-          ? eligible 
-          : allRecipes.filter(r => r.suitableSlots.includes(slot) && !dayUsedIds.has(r.id)));
-
-    const finalCandidates = pool.length > 0 
-      ? pool 
-      : allRecipes.filter(r => r.suitableSlots.includes(slot));
-
-    const ranked = rankRecipesByPantry(finalCandidates, pantry);
+    const ranked = rankRecipesByPantry(candidates, pantry);
     const chosen = ranked.length > 0 ? ranked[0].recipe : null;
 
     if (chosen) {

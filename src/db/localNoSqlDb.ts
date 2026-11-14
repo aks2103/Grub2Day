@@ -58,7 +58,7 @@ export class LocalNoSqlDb implements IDatabaseProvider {
       const defaultSettings: UserHouseholdSettings = {
         isOnboarded: false,
         husbandName: APP_CONFIG.husbandName || 'Alok',
-        wifeName: 'Wifey',
+        wifeName: 'Partner',
         wifeWhatsApp: '',
         husbandProteinTarget: APP_CONFIG.proteinTargetGrams,
         calorieTarget: APP_CONFIG.calorieTarget,
@@ -76,12 +76,18 @@ export class LocalNoSqlDb implements IDatabaseProvider {
   // --- Recipes ---
   async getAllRecipes(): Promise<Recipe[]> {
     const raw = localStorage.getItem(STORAGE_KEYS.RECIPES);
-    if (!raw) return SEED_RECIPES;
-    try {
-      return JSON.parse(raw) as Recipe[];
-    } catch {
-      return SEED_RECIPES;
+    const recipeMap = new Map<string, Recipe>();
+    // Guarantee all base seed recipes are loaded
+    SEED_RECIPES.forEach(r => recipeMap.set(r.id, r));
+    if (raw) {
+      try {
+        const custom = JSON.parse(raw) as Recipe[];
+        custom.forEach(r => recipeMap.set(r.id, r));
+      } catch {
+        // fallback to map
+      }
     }
+    return Array.from(recipeMap.values());
   }
 
   async getRecipeById(id: string): Promise<Recipe | null> {
@@ -185,7 +191,9 @@ export class LocalNoSqlDb implements IDatabaseProvider {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (raw) {
       try {
-        return JSON.parse(raw) as UserHouseholdSettings;
+        const parsed = JSON.parse(raw) as UserHouseholdSettings;
+        if (parsed.wifeName === 'Wifey') parsed.wifeName = 'Partner';
+        return parsed;
       } catch {
         // fallback
       }
@@ -194,7 +202,7 @@ export class LocalNoSqlDb implements IDatabaseProvider {
     return {
       isOnboarded: false,
       husbandName: APP_CONFIG.husbandName || 'Alok',
-      wifeName: 'Wifey',
+      wifeName: 'Partner',
       wifeWhatsApp: rawPhone,
       husbandProteinTarget: APP_CONFIG.proteinTargetGrams,
       calorieTarget: APP_CONFIG.calorieTarget,

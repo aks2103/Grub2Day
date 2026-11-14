@@ -65,9 +65,11 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     if (!this.db) return;
     try {
       const snap = await getDocs(collection(this.db, 'recipes'));
-      if (snap.empty) {
-        console.log("Grub2Day: Seeding Firestore with Pan-Indian culinary library...");
-        const batchPromises = SEED_RECIPES.map((recipe: Recipe) => 
+      const existingIds = new Set(snap.docs.map(d => d.id));
+      const missing = SEED_RECIPES.filter(r => !existingIds.has(r.id));
+      if (missing.length > 0) {
+        console.log(`Grub2Day: Syncing ${missing.length} missing recipes to Firestore...`);
+        const batchPromises = missing.map((recipe: Recipe) => 
           setDoc(doc(this.db!, 'recipes', recipe.id), recipe)
         );
         await Promise.all(batchPromises);
@@ -83,10 +85,15 @@ export class FirestoreDbProvider implements IDatabaseProvider {
     }
     try {
       const snap = await getDocs(collection(this.db, 'recipes'));
-      if (snap.empty) {
-        return SEED_RECIPES;
-      }
-      return snap.docs.map(d => d.data() as Recipe);
+      const recipeMap = new Map<string, Recipe>();
+      // Guarantee all seed recipes are loaded
+      SEED_RECIPES.forEach(r => recipeMap.set(r.id, r));
+      // Overlay Firestore docs (including user custom recipes)
+      snap.docs.forEach(d => {
+        const data = d.data() as Recipe;
+        recipeMap.set(data.id, data);
+      });
+      return Array.from(recipeMap.values());
     } catch (err) {
       console.warn("Firestore getAllRecipes failed, using fallback:", err);
       return this.fallbackDb.getAllRecipes();
