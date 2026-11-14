@@ -487,11 +487,11 @@ export const App: React.FC = () => {
     setIsReplanning(false);
   };
 
-  // State for cycling through 💡 inspiration recipes per slot
+  // State for cycling through 💡 inspiration recipes per slot (staggered to guarantee distinct meals)
   const [inspirationOffsets, setInspirationOffsets] = useState<{ breakfast: number; lunch: number; dinner: number }>({
     breakfast: 0,
     lunch: 0,
-    dinner: 0,
+    dinner: 1,
   });
 
   const handleRefreshShuffle = async () => {
@@ -501,11 +501,11 @@ export const App: React.FC = () => {
     isMutatingRef.current = true;
     setIsReplanning(true);
 
-    // 1. Rotate inspiration offsets so Food Inspiration immediately shows fresh recipes
+    // 1. Rotate inspiration offsets with distinct strides so Lunch and Dinner never align
     setInspirationOffsets(prev => ({
       breakfast: prev.breakfast + 1,
       lunch: prev.lunch + 1,
-      dinner: prev.dinner + 1,
+      dinner: prev.dinner + 2,
     }));
 
     // 2. Shuffle and regenerate 6-day plans with fresh diverse dishes
@@ -530,14 +530,11 @@ export const App: React.FC = () => {
   const lunchInspirations = useMemo(() => {
     if (!pantry || recipes.length === 0 || !selectedPlan) return [];
     const currentId = selectedPlan.lunch?.recipeId;
-    return getInspirationRecipes('lunch', recipes, pantry, currentId, undefined, language, settings);
-  }, [recipes, pantry, selectedPlan?.lunch?.recipeId, language, settings]);
-
-  const dinnerInspirations = useMemo(() => {
-    if (!pantry || recipes.length === 0 || !selectedPlan) return [];
-    const currentId = selectedPlan.dinner?.recipeId;
-    return getInspirationRecipes('dinner', recipes, pantry, currentId, undefined, language, settings);
-  }, [recipes, pantry, selectedPlan?.dinner?.recipeId, language, settings]);
+    const exclude = new Set<string>();
+    if (selectedPlan.breakfast?.recipeId) exclude.add(selectedPlan.breakfast.recipeId);
+    if (selectedPlan.dinner?.recipeId) exclude.add(selectedPlan.dinner.recipeId);
+    return getInspirationRecipes('lunch', recipes, pantry, currentId, exclude, language, settings);
+  }, [recipes, pantry, selectedPlan?.lunch?.recipeId, selectedPlan?.breakfast?.recipeId, selectedPlan?.dinner?.recipeId, language, settings]);
 
   const currentBreakfastInspiration = useMemo(() => {
     if (breakfastInspirations.length === 0) return null;
@@ -546,13 +543,34 @@ export const App: React.FC = () => {
 
   const currentLunchInspiration = useMemo(() => {
     if (lunchInspirations.length === 0) return null;
-    return lunchInspirations[inspirationOffsets.lunch % lunchInspirations.length];
-  }, [lunchInspirations, inspirationOffsets.lunch]);
+    const bId = currentBreakfastInspiration?.recipe?.id;
+    const pool = bId ? lunchInspirations.filter(i => i.recipe.id !== bId) : lunchInspirations;
+    const activePool = pool.length > 0 ? pool : lunchInspirations;
+    return activePool[inspirationOffsets.lunch % activePool.length];
+  }, [lunchInspirations, inspirationOffsets.lunch, currentBreakfastInspiration?.recipe?.id]);
+
+  const dinnerInspirations = useMemo(() => {
+    if (!pantry || recipes.length === 0 || !selectedPlan) return [];
+    const currentId = selectedPlan.dinner?.recipeId;
+    const exclude = new Set<string>();
+    if (selectedPlan.breakfast?.recipeId) exclude.add(selectedPlan.breakfast.recipeId);
+    if (selectedPlan.lunch?.recipeId) exclude.add(selectedPlan.lunch.recipeId);
+    if (currentLunchInspiration?.recipe?.id) exclude.add(currentLunchInspiration.recipe.id);
+    return getInspirationRecipes('dinner', recipes, pantry, currentId, exclude, language, settings);
+  }, [recipes, pantry, selectedPlan?.dinner?.recipeId, selectedPlan?.breakfast?.recipeId, selectedPlan?.lunch?.recipeId, currentLunchInspiration?.recipe?.id, language, settings]);
 
   const currentDinnerInspiration = useMemo(() => {
     if (dinnerInspirations.length === 0) return null;
-    return dinnerInspirations[inspirationOffsets.dinner % dinnerInspirations.length];
-  }, [dinnerInspirations, inspirationOffsets.dinner]);
+    const lunchId = currentLunchInspiration?.recipe?.id;
+    const breakfastId = currentBreakfastInspiration?.recipe?.id;
+
+    // Strict Zero-Repeat Guarantee: Filter out both lunch and breakfast inspiration dishes
+    const distinctPool = dinnerInspirations.filter(
+      d => d.recipe.id !== lunchId && d.recipe.id !== breakfastId
+    );
+    const pool = distinctPool.length > 0 ? distinctPool : dinnerInspirations;
+    return pool[inspirationOffsets.dinner % pool.length];
+  }, [dinnerInspirations, inspirationOffsets.dinner, currentLunchInspiration?.recipe?.id, currentBreakfastInspiration?.recipe?.id]);
 
 
 

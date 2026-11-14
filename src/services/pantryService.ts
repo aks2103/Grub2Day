@@ -478,6 +478,12 @@ export function getInspirationRecipes(
     recipe,
     missingIngredients: getMissingIngredientsForRecipe(recipe, pantry, language)
   })).sort((a, b) => {
+    // For dinner, prioritize dinner-friendly categories (paneer, dry sabzis, street food, Indo-Chinese)
+    if (slot === 'dinner') {
+      const isFavDinnerA = ['paneer', 'dry_sabzi', 'dal', 'street_food', 'indo_chinese'].includes(a.recipe.category) ? 1 : 0;
+      const isFavDinnerB = ['paneer', 'dry_sabzi', 'dal', 'street_food', 'indo_chinese'].includes(b.recipe.category) ? 1 : 0;
+      if (isFavDinnerA !== isFavDinnerB) return isFavDinnerB - isFavDinnerA;
+    }
     // Sort by high protein first
     const protA = a.recipe.baseProteinGrams + a.recipe.addedProteinGrams;
     const protB = b.recipe.baseProteinGrams + b.recipe.addedProteinGrams;
