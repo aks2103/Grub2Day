@@ -17,6 +17,7 @@ interface FoodieMealCardProps {
   onUpdateWifePhone?: (phone: string) => void;
   isMissingInFridge?: boolean;
   missingIngredients?: string[];
+  language?: 'en' | 'hi';
 }
 
 const SLOT_STYLES: Record<MealSlot, { title: string; emoji: string; accent: string; badge: string }> = {
@@ -62,6 +63,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
   onUpdateWifePhone,
   isMissingInFridge = false,
   missingIngredients = [],
+  language = 'en',
 }) => {
   const meta = SLOT_STYLES[slot];
 
@@ -87,15 +89,16 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
       }
     }
 
-    const mealName = recipe.hindiName ? `${recipe.name} (${recipe.hindiName})` : recipe.name;
+    const mealName = (language === 'hi' && recipe.hindiName) ? `${recipe.name} (${recipe.hindiName})` : recipe.name;
     const slotTitle = meta.title;
     const appUrl = window.location.origin;
     const needStr = isMissingInFridge && missingIngredients.length > 0 
       ? `\n🛒 Need to get: ${missingIngredients.join(', ')}` 
       : '';
-    const text = encodeURIComponent(
-      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️${needStr}\n\nProtein Boost: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
-    );
+    const shareBody = language === 'hi'
+      ? `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️${needStr}\n\nProtein Boost: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
+      : `Hey! Craving *${recipe.name}* for ${slotTitle} today 😋❤️${needStr}\n\nProtein Boost: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`;
+    const text = encodeURIComponent(shareBody);
     window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
   };
 
@@ -199,7 +202,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
         <h3 className="text-base font-black text-slate-900 tracking-tight leading-snug">
           {recipe.name}
         </h3>
-        {recipe.hindiName && (
+        {language === 'hi' && recipe.hindiName && (
           <span className="text-xs font-bold text-amber-700 block mt-0.5">
             {recipe.hindiName}
           </span>

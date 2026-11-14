@@ -60,6 +60,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     new Set(initialSettings?.dislikedIngredients || [])
   );
   const [userEmail, setUserEmail] = useState<string>(initialSettings?.userEmail || '');
+  const [lang, setLang] = useState<'en' | 'hi'>(() => {
+    return initialSettings?.language || (localStorage.getItem('grub2day_lang') as 'en' | 'hi') || 'en';
+  });
 
   if (!isOpen) return null;
 
@@ -91,6 +94,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     if (cleanedPhone) {
       localStorage.setItem('wife_whatsapp_phone', cleanedPhone);
     }
+    localStorage.setItem('grub2day_lang', lang);
 
     const payload: UserHouseholdSettings = {
       isOnboarded: true,
@@ -107,6 +111,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       familyMembersNote: hasKids ? 'Parents + 2 young kids (<4 years, <6 months)' : 'Couple',
       userEmail: userEmail.trim(),
       householdName: `${husbandName.trim() || 'Alok'} & ${wifeName.trim() || 'Partner'}'s Kitchen`,
+      language: lang,
     };
 
     await onComplete(payload);
@@ -213,6 +218,39 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <p className="text-[10px] text-slate-500 leading-tight">
                   Enables 1-tap dish sharing & cravings directly into their WhatsApp chat!
                 </p>
+              </div>
+
+              {/* Language Selection */}
+              <div>
+                <label className="text-xs font-black text-slate-800 block mb-1">
+                  App Language:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLang('en')}
+                    className={`h-9 px-3 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                      lang === 'en'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-orange-500 shadow-2xs'
+                        : 'bg-white text-slate-700 border-orange-200/80 hover:bg-orange-50/50'
+                    }`}
+                  >
+                    <span>🇬🇧</span>
+                    <span>English (Clean)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLang('hi')}
+                    className={`h-9 px-3 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
+                      lang === 'hi'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-orange-500 shadow-2xs'
+                        : 'bg-white text-slate-700 border-orange-200/80 hover:bg-orange-50/50'
+                    }`}
+                  >
+                    <span>🇮🇳</span>
+                    <span>हिंदी (Hindi)</span>
+                  </button>
+                </div>
               </div>
 
               {/* Kids Toggle */}

@@ -13,6 +13,7 @@ interface FoodiePantrySheetProps {
   onUpdateWifePhone?: (phone: string) => void;
   showWhatsAppShare?: boolean;
   onToggleWhatsAppShare?: (show: boolean) => void;
+  language?: 'en' | 'hi';
 }
 
 export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
@@ -25,6 +26,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
   onUpdateWifePhone,
   showWhatsAppShare = true,
   onToggleWhatsAppShare,
+  language = 'en',
 }) => {
   const [veggies, setVeggies] = useState<Set<string>>(new Set(pantry.availableVeggies));
   const [staples, setStaples] = useState<Set<string>>(new Set(pantry.staplesInStock));
@@ -189,6 +191,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {STANDARD_VEGGIES.map(v => {
                 const checked = veggies.has(v.id);
+                const displayName = language === 'hi' ? v.nameHi : v.nameEn;
                 return (
                   <button
                     key={v.id}
@@ -201,7 +204,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                   >
                     <span className="flex items-center gap-1.5 truncate">
                       <span>{v.icon}</span>
-                      <span className="truncate">{v.label.split('(')[0].trim()}</span>
+                      <span className="truncate">{displayName}</span>
                     </span>
                     {checked && <Check className="w-3.5 h-3.5 text-white flex-shrink-0" />}
                   </button>
@@ -215,7 +218,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <span>🌾</span>
-                <span>Dals, Legumes & Staples</span>
+                <span>{language === 'hi' ? 'दालें व राशन' : 'Dals, Legumes & Staples'}</span>
               </span>
               <span className="text-[11px] font-bold text-emerald-600">
                 {staples.size} In Stock
@@ -224,6 +227,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {STANDARD_STAPLES.map(s => {
                 const checked = staples.has(s.id);
+                const displayName = language === 'hi' ? s.nameHi : s.nameEn;
                 return (
                   <button
                     key={s.id}
@@ -234,7 +238,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                         : 'bg-emerald-50/30 text-slate-700 border-emerald-200/60 hover:bg-emerald-100/50'
                     }`}
                   >
-                    <span className="truncate">{s.label}</span>
+                    <span className="truncate">{displayName}</span>
                     {checked && <Check className="w-3.5 h-3.5 text-white flex-shrink-0" />}
                   </button>
                 );

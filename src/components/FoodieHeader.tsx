@@ -1,11 +1,13 @@
 import React from 'react';
-import { Refrigerator, RotateCcw, User } from 'lucide-react';
+import { Refrigerator, RotateCcw, User, Languages } from 'lucide-react';
 
 interface FoodieHeaderProps {
   currentDateStr: string;
   onOpenPantry: () => void;
   householdName?: string;
   onOpenProfile?: () => void;
+  language?: 'en' | 'hi';
+  onToggleLanguage?: () => void;
 }
 
 export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
@@ -13,9 +15,11 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
   onOpenPantry,
   householdName,
   onOpenProfile,
+  language = 'en',
+  onToggleLanguage,
 }) => {
   const dateObj = new Date(currentDateStr);
-  const formattedDate = dateObj.toLocaleDateString('en-IN', {
+  const formattedDate = dateObj.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -45,13 +49,25 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
               <p className="text-[11px] font-semibold text-amber-700 mt-0.5 truncate">
                 <span>{formattedDate}</span>
                 <span className="mx-1">•</span>
-                <span>Ghar Ka Swaad, Zero Repeat</span>
+                <span>{language === 'hi' ? 'घर का स्वाद, रोज़ नया स्वाद' : 'Fresh Home Meals, Zero Monotony'}</span>
               </p>
             </div>
           </div>
 
           {/* Right Action Icons (Compact & Clean - Never Overflows) */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Language Toggle */}
+            {onToggleLanguage && (
+              <button
+                onClick={onToggleLanguage}
+                className="h-8 px-2 rounded-xl bg-amber-50 hover:bg-amber-100/90 active:scale-95 text-amber-900 border border-amber-200/80 text-[11px] font-black transition-all flex items-center gap-1 shadow-2xs"
+                title={language === 'hi' ? 'Switch to English' : 'Switch to Hindi (हिंदी)'}
+              >
+                <Languages className="w-3.5 h-3.5 text-amber-700" />
+                <span>{language === 'hi' ? 'HI' : 'EN'}</span>
+              </button>
+            )}
+
             {/* Household Profile Button */}
             {onOpenProfile && (
               <button

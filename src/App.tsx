@@ -15,7 +15,22 @@ import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { getInspirationRecipes, getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from './services/pantryService';
 import { APP_CONFIG } from './config/env';
-import { Sparkles, Heart } from 'lucide-react';
+import { Sparkles, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner'];
+
+const SLOT_NAV_CONFIG: { slot: MealSlot; labelEn: string; labelHi: string; emoji: string }[] = [
+  { slot: 'breakfast', labelEn: 'Breakfast', labelHi: 'नाश्ता', emoji: '🌅' },
+  { slot: 'lunch', labelEn: 'Lunch', labelHi: 'लंच', emoji: '☀️' },
+  { slot: 'dinner', labelEn: 'Dinner', labelHi: 'डिनर', emoji: '🌙' },
+];
+
+function getSmartInitialSlot(): MealSlot {
+  const hour = new Date().getHours();
+  if (hour < 11) return 'breakfast';
+  if (hour < 16) return 'lunch';
+  return 'dinner';
+}
 
 export const App: React.FC = () => {
   const [db, setDb] = useState<IDatabaseProvider | null>(null);
@@ -67,6 +82,65 @@ export const App: React.FC = () => {
     } else {
       showToast("❤️ WhatsApp removed. Pure Craving mode active!");
     }
+  };
+
+  // Language & Meal Slot Swipe Controls
+  const [language, setLanguage] = useState<'en' | 'hi'>(() => {
+    const saved = localStorage.getItem('grub2day_lang');
+    return (saved === 'hi' || saved === 'en') ? saved : 'en';
+  });
+
+  const [selectedMealSlot, setSelectedMealSlot] = useState<MealSlot>(getSmartInitialSlot);
+
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      const currentIdx = SLOTS.indexOf(selectedMealSlot);
+      if (deltaX < 0) {
+        // Swiped Left -> Next Meal
+        if (currentIdx < SLOTS.length - 1) {
+          setSelectedMealSlot(SLOTS[currentIdx + 1]);
+        }
+      } else {
+        // Swiped Right -> Previous Meal
+        if (currentIdx > 0) {
+          setSelectedMealSlot(SLOTS[currentIdx - 1]);
+        }
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  const handlePrevSlot = () => {
+    const idx = SLOTS.indexOf(selectedMealSlot);
+    if (idx > 0) setSelectedMealSlot(SLOTS[idx - 1]);
+  };
+
+  const handleNextSlot = () => {
+    const idx = SLOTS.indexOf(selectedMealSlot);
+    if (idx < SLOTS.length - 1) setSelectedMealSlot(SLOTS[idx + 1]);
+  };
+
+  const handleToggleLanguage = () => {
+    const next = language === 'en' ? 'hi' : 'en';
+    setLanguage(next);
+    localStorage.setItem('grub2day_lang', next);
+    if (db && settings) {
+      db.saveSettings({ ...settings, language: next }).catch(console.error);
+    }
+    showToast(next === 'hi' ? '🌐 भाषा: हिंदी (Hindi)' : '🌐 Language: English (Clean & Concise)');
   };
 
   const recipesMap = useMemo(() => {
@@ -374,6 +448,8 @@ export const App: React.FC = () => {
         onOpenPantry={() => setPantrySheetOpen(true)}
         householdName={settings?.householdName}
         onOpenProfile={() => setOnboardingOpen(true)}
+        language={language}
+        onToggleLanguage={handleToggleLanguage}
       />
 
       {/* Main Container tailored for iPhone 13 (max-w-md, px-3) */}
@@ -432,74 +508,137 @@ export const App: React.FC = () => {
           </button>
         </div>
 
-        {/* 3 Foodie Meal Cards (Breakfast, Lunch, Dinner) */}
-        <div className="space-y-3 flex-1">
-          {(() => {
-            const displayBreakfastRecipe = menuViewMode === 'inspiration' && currentBreakfastInspiration
-              ? currentBreakfastInspiration.recipe
-              : (selectedPlan.breakfast.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null);
-
-            const displayLunchRecipe = menuViewMode === 'inspiration' && currentLunchInspiration
-              ? currentLunchInspiration.recipe
-              : (selectedPlan.lunch.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null);
-
-            const displayDinnerRecipe = menuViewMode === 'inspiration' && currentDinnerInspiration
-              ? currentDinnerInspiration.recipe
-              : (selectedPlan.dinner.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null);
+        {/* Level 2: Meal Time Slot Segmented Tabs (Breakfast, Lunch, Dinner) */}
+        <div className="flex items-center gap-1.5 p-1 bg-amber-50/90 rounded-2xl border border-amber-200/80 mb-2 shadow-2xs">
+          {SLOT_NAV_CONFIG.map(({ slot, labelEn, labelHi, emoji }) => {
+            const isSelected = selectedMealSlot === slot;
+            const entry = selectedPlan[slot];
+            const isCooked = entry.isCooked;
+            const isCraving = entry.isHusbandCraving;
+            const isDiningOut = slot === 'dinner' && entry.isDiningOut;
 
             return (
-              <>
-                <FoodieMealCard
-                  slot="breakfast"
-                  entry={selectedPlan.breakfast}
-                  recipe={displayBreakfastRecipe}
-                  dayIndex={selectedDayIndex}
-                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'breakfast', isCooked, displayBreakfastRecipe?.id)}
-                  onSwapClick={() => handleSwapClick(selectedDayIndex, 'breakfast')}
-                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'breakfast', isCraving)}
-                  wifePhone={wifePhone}
-                  showWhatsAppShare={showWhatsAppShare}
-                  onUpdateWifePhone={handleUpdateWifePhone}
-                  isMissingInFridge={pantry && displayBreakfastRecipe ? !hasRequiredCoreIngredients(displayBreakfastRecipe, pantry) : false}
-                  missingIngredients={pantry && displayBreakfastRecipe ? getMissingIngredientsForRecipe(displayBreakfastRecipe, pantry) : []}
-                />
+              <button
+                key={slot}
+                onClick={() => setSelectedMealSlot(slot)}
+                className={`flex-1 py-2 px-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 relative ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs'
+                    : 'bg-white/80 hover:bg-orange-50 text-slate-700 border border-orange-100'
+                }`}
+              >
+                <span className="text-sm">{emoji}</span>
+                <span className="truncate">{language === 'hi' ? labelHi : labelEn}</span>
+                {isCooked && (
+                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black ${
+                    isSelected ? 'bg-white text-emerald-700' : 'bg-emerald-600 text-white'
+                  }`}>
+                    ✓
+                  </span>
+                )}
+                {isCraving && !isCooked && (
+                  <span className="text-[10px]">❤️</span>
+                )}
+                {isDiningOut && (
+                  <span className="text-[10px]">🍕</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-                <FoodieMealCard
-                  slot="lunch"
-                  entry={selectedPlan.lunch}
-                  recipe={displayLunchRecipe}
-                  dayIndex={selectedDayIndex}
-                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'lunch', isCooked, displayLunchRecipe?.id)}
-                  onSwapClick={() => handleSwapClick(selectedDayIndex, 'lunch')}
-                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'lunch', isCraving)}
-                  wifePhone={wifePhone}
-                  showWhatsAppShare={showWhatsAppShare}
-                  onUpdateWifePhone={handleUpdateWifePhone}
-                  isMissingInFridge={pantry && displayLunchRecipe ? !hasRequiredCoreIngredients(displayLunchRecipe, pantry) : false}
-                  missingIngredients={pantry && displayLunchRecipe ? getMissingIngredientsForRecipe(displayLunchRecipe, pantry) : []}
-                />
+        {/* Single Swipeable Meal Card (Zero Vertical Clutter) */}
+        <div 
+          className="flex-1 transition-all duration-200 touch-pan-y"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {(() => {
+            const displayRecipe = (() => {
+              if (selectedMealSlot === 'breakfast') {
+                return menuViewMode === 'inspiration' && currentBreakfastInspiration
+                  ? currentBreakfastInspiration.recipe
+                  : (selectedPlan.breakfast.recipeId ? recipesMap.get(selectedPlan.breakfast.recipeId) : null);
+              }
+              if (selectedMealSlot === 'lunch') {
+                return menuViewMode === 'inspiration' && currentLunchInspiration
+                  ? currentLunchInspiration.recipe
+                  : (selectedPlan.lunch.recipeId ? recipesMap.get(selectedPlan.lunch.recipeId) : null);
+              }
+              return menuViewMode === 'inspiration' && currentDinnerInspiration
+                ? currentDinnerInspiration.recipe
+                : (selectedPlan.dinner.recipeId ? recipesMap.get(selectedPlan.dinner.recipeId) : null);
+            })();
 
-                <FoodieMealCard
-                  slot="dinner"
-                  entry={selectedPlan.dinner}
-                  recipe={displayDinnerRecipe}
-                  dayIndex={selectedDayIndex}
-                  onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, 'dinner', isCooked, displayDinnerRecipe?.id)}
-                  onSwapClick={() => handleSwapClick(selectedDayIndex, 'dinner')}
-                  onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
-                  onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, 'dinner', isCraving)}
-                  onToggleDiningOut={(isOut) => handleToggleDiningOut(selectedDayIndex, isOut)}
-                  wifePhone={wifePhone}
-                  showWhatsAppShare={showWhatsAppShare}
-                  onUpdateWifePhone={handleUpdateWifePhone}
-                  isMissingInFridge={pantry && displayDinnerRecipe ? !hasRequiredCoreIngredients(displayDinnerRecipe, pantry) : false}
-                  missingIngredients={pantry && displayDinnerRecipe ? getMissingIngredientsForRecipe(displayDinnerRecipe, pantry) : []}
-                />
-              </>
+            return (
+              <FoodieMealCard
+                key={selectedMealSlot}
+                slot={selectedMealSlot}
+                entry={selectedPlan[selectedMealSlot]}
+                recipe={displayRecipe}
+                dayIndex={selectedDayIndex}
+                onMarkCooked={(isCooked) => handleMarkCooked(selectedDayIndex, selectedMealSlot, isCooked, displayRecipe?.id)}
+                onSwapClick={() => handleSwapClick(selectedDayIndex, selectedMealSlot)}
+                onOpenHowToCook={(rec) => { setHowToCookRecipe(rec); setHowToCookOpen(true); }}
+                onToggleCraving={(isCraving) => handleToggleCraving(selectedDayIndex, selectedMealSlot, isCraving)}
+                onToggleDiningOut={selectedMealSlot === 'dinner' ? (isOut) => handleToggleDiningOut(selectedDayIndex, isOut) : undefined}
+                wifePhone={wifePhone}
+                showWhatsAppShare={showWhatsAppShare}
+                onUpdateWifePhone={handleUpdateWifePhone}
+                isMissingInFridge={pantry && displayRecipe ? !hasRequiredCoreIngredients(displayRecipe, pantry) : false}
+                missingIngredients={pantry && displayRecipe ? getMissingIngredientsForRecipe(displayRecipe, pantry) : []}
+                language={language}
+              />
             );
           })()}
+        </div>
+
+        {/* Bottom Pagination & Swipe Navigation Bar */}
+        <div className="flex items-center justify-between pt-2 px-1 text-slate-500 text-xs">
+          <button
+            onClick={handlePrevSlot}
+            disabled={selectedMealSlot === 'breakfast'}
+            className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 font-bold transition-all ${
+              selectedMealSlot === 'breakfast'
+                ? 'opacity-30 cursor-not-allowed border-transparent text-slate-400'
+                : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
+            }`}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-extrabold hidden xs:inline">Prev</span>
+          </button>
+
+          {/* Dots / Segment indicators */}
+          <div className="flex items-center gap-1.5">
+            {SLOTS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSelectedMealSlot(s)}
+                className={`transition-all rounded-full ${
+                  selectedMealSlot === s
+                    ? 'w-5 h-2 bg-gradient-to-r from-amber-500 to-orange-500'
+                    : 'w-2 h-2 bg-orange-200 hover:bg-orange-300'
+                }`}
+                title={`Go to ${s}`}
+              />
+            ))}
+            <span className="text-[10px] text-slate-400 font-semibold ml-1">
+              {language === 'hi' ? 'स्वाइप करें 👈 👉' : 'Swipe 👈 👉'}
+            </span>
+          </div>
+
+          <button
+            onClick={handleNextSlot}
+            disabled={selectedMealSlot === 'dinner'}
+            className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 font-bold transition-all ${
+              selectedMealSlot === 'dinner'
+                ? 'opacity-30 cursor-not-allowed border-transparent text-slate-400'
+                : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
+            }`}
+          >
+            <span className="text-[11px] font-extrabold hidden xs:inline">Next</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </main>
 
@@ -508,6 +647,7 @@ export const App: React.FC = () => {
         isOpen={howToCookOpen}
         onClose={() => setHowToCookOpen(false)}
         recipe={howToCookRecipe}
+        language={language}
       />
 
       {/* Foodie Bottom Sheet: Swap */}
@@ -524,6 +664,7 @@ export const App: React.FC = () => {
         allAvailableRecipes={allSlotRecipes}
         onSelectRecipe={handleSelectSwapRecipe}
         pantry={pantry}
+        language={language}
       />
 
       {/* Foodie Bottom Sheet: Pantry */}
@@ -537,6 +678,7 @@ export const App: React.FC = () => {
         onUpdateWifePhone={handleUpdateWifePhone}
         showWhatsAppShare={showWhatsAppShare}
         onToggleWhatsAppShare={handleToggleWhatsAppShare}
+        language={language}
       />
 
       {/* Household Sign-up & Onboarding Modal */}

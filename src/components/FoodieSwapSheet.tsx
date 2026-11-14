@@ -12,6 +12,7 @@ interface FoodieSwapSheetProps {
   allAvailableRecipes: Recipe[];
   onSelectRecipe: (recipeId: string) => void;
   pantry?: PantryState | null;
+  language?: 'en' | 'hi';
 }
 
 export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
@@ -23,6 +24,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
   allAvailableRecipes,
   onSelectRecipe,
   pantry,
+  language = 'en',
 }) => {
   const [search, setSearch] = useState('');
   const [regionFilter, setRegionFilter] = useState<'all' | 'north' | 'south' | 'west' | 'east'>('all');
@@ -197,7 +199,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                     <h4 className="text-sm font-black text-slate-900">
                       {recipe.name}
                     </h4>
-                    {recipe.hindiName && (
+                    {language === 'hi' && recipe.hindiName && (
                       <span className="text-[11px] font-bold text-amber-700">
                         ({recipe.hindiName})
                       </span>

@@ -79,4 +79,5 @@ export interface UserHouseholdSettings {
   familyMembersNote: string;
   userEmail?: string;
   householdName?: string;
+  language?: 'en' | 'hi';
 }

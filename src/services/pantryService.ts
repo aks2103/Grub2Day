@@ -5,43 +5,51 @@
 
 import { Recipe, PantryState } from '../types';
 
-export const STANDARD_VEGGIES = [
-  { id: 'paneer', label: 'Paneer (पनीर)', icon: '🧀' },
-  { id: 'eggs', label: 'Eggs (अंडे)', icon: '🥚' },
-  { id: 'palak', label: 'Palak (पालक)', icon: '🥬' },
-  { id: 'bhindi', label: 'Bhindi (भिंडी)', icon: '🥒' },
-  { id: 'cauliflower', label: 'Gobhi (गोभी)', icon: '🥦' },
-  { id: 'lauki', label: 'Lauki / Ghia (लौकी)', icon: '🥒' },
-  { id: 'green_peas', label: 'Matar (मटर)', icon: '🫛' },
-  { id: 'potato', label: 'Aloo (आलू)', icon: '🥔' },
-  { id: 'onion', label: 'Pyaaz (प्याज़)', icon: '🧅' },
-  { id: 'tomato', label: 'Tamatar (टमाटर)', icon: '🍅' },
-  { id: 'capsicum', label: 'Shimla Mirch (शिमला मिर्च)', icon: '🫑' },
-  { id: 'carrots', label: 'Gajar (गाजर)', icon: '🥕' },
-  { id: 'eggplant', label: 'Baingan (बैंगन)', icon: '🍆' },
-  { id: 'methi_leaves', label: 'Methi (मेथी पत्ता)', icon: '🌿' },
-  { id: 'yellow_pumpkin', label: 'Kaddu / Sitaphal (कद्दू)', icon: '🎃' },
-  { id: 'tori', label: 'Torai (तोरई)', icon: '🥒' },
-  { id: 'arbi', label: 'Arbi (अरबी)', icon: '🥔' },
-  { id: 'sprouts', label: 'Sprouts (अंकुरित मूँग/चना)', icon: '🌱' },
+export interface PantryItemMeta {
+  id: string;
+  label: string;
+  nameEn: string;
+  nameHi: string;
+  icon?: string;
+}
+
+export const STANDARD_VEGGIES: PantryItemMeta[] = [
+  { id: 'paneer', label: 'Paneer (पनीर)', nameEn: 'Paneer (Cottage Cheese)', nameHi: 'पनीर', icon: '🧀' },
+  { id: 'eggs', label: 'Eggs (अंडे)', nameEn: 'Eggs', nameHi: 'अंडे', icon: '🥚' },
+  { id: 'palak', label: 'Palak (पालक)', nameEn: 'Spinach', nameHi: 'पालक', icon: '🥬' },
+  { id: 'bhindi', label: 'Bhindi (भिंडी)', nameEn: 'Okra / Bhindi', nameHi: 'भिंडी', icon: '🥒' },
+  { id: 'cauliflower', label: 'Gobhi (गोभी)', nameEn: 'Cauliflower / Gobhi', nameHi: 'गोभी', icon: '🥦' },
+  { id: 'lauki', label: 'Lauki / Ghia (लौकी)', nameEn: 'Bottle Gourd / Lauki', nameHi: 'लौकी / घिया', icon: '🥒' },
+  { id: 'green_peas', label: 'Matar (मटर)', nameEn: 'Green Peas', nameHi: 'मटर', icon: '🫛' },
+  { id: 'potato', label: 'Aloo (आलू)', nameEn: 'Potato / Aloo', nameHi: 'आलू', icon: '🥔' },
+  { id: 'onion', label: 'Pyaaz (प्याज़)', nameEn: 'Onion / Pyaaz', nameHi: 'प्याज़', icon: '🧅' },
+  { id: 'tomato', label: 'Tamatar (टमाटर)', nameEn: 'Tomato / Tamatar', nameHi: 'टमाटर', icon: '🍅' },
+  { id: 'capsicum', label: 'Shimla Mirch (शिमला मिर्च)', nameEn: 'Bell Pepper / Capsicum', nameHi: 'शिमला मिर्च', icon: '🫑' },
+  { id: 'carrots', label: 'Gajar (गाजर)', nameEn: 'Carrots', nameHi: 'गाजर', icon: '🥕' },
+  { id: 'eggplant', label: 'Baingan (बैंगन)', nameEn: 'Eggplant / Baingan', nameHi: 'बैंगन', icon: '🍆' },
+  { id: 'methi_leaves', label: 'Methi (मेथी पत्ता)', nameEn: 'Fenugreek Leaves / Methi', nameHi: 'मेथी पत्ता', icon: '🌿' },
+  { id: 'yellow_pumpkin', label: 'Kaddu / Sitaphal (कद्दू)', nameEn: 'Pumpkin / Kaddu', nameHi: 'कद्दू / सीताफल', icon: '🎃' },
+  { id: 'tori', label: 'Torai (तोरई)', nameEn: 'Ridge Gourd / Torai', nameHi: 'तोरई', icon: '🥒' },
+  { id: 'arbi', label: 'Arbi (अरबी)', nameEn: 'Colocasia / Arbi', nameHi: 'अरबी', icon: '🥔' },
+  { id: 'sprouts', label: 'Sprouts (अंकुरित मूँग/चना)', nameEn: 'Sprouts (Moong / Chana)', nameHi: 'अंकुरित मूँग/चना', icon: '🌱' },
 ];
 
-export const STANDARD_STAPLES = [
-  { id: 'yellow_moong', label: 'Yellow Moong Dal' },
-  { id: 'rajma', label: 'Rajma' },
-  { id: 'kabuli_chana', label: 'Kabuli Chana (Chhole)' },
-  { id: 'kala_chana', label: 'Kala Chana' },
-  { id: 'besan', label: 'Besan (Gram Flour)' },
-  { id: 'soya_chunks', label: 'Soya Chunks / Nutri' },
-  { id: 'dahi', label: 'Curd / Dahi' },
-  { id: 'atta', label: 'Wheat Atta' },
-  { id: 'poha', label: 'Poha' },
-  { id: 'suji', label: 'Suji / Rava' },
-  { id: 'oats', label: 'Oats' },
-  { id: 'lobia', label: 'Lobia' },
-  { id: 'red_masoor', label: 'Masoor Dal' },
-  { id: 'toor_dal', label: 'Toor Dal' },
-  { id: 'urad_sabut', label: 'Urad Sabut (Black Lentils)' },
+export const STANDARD_STAPLES: PantryItemMeta[] = [
+  { id: 'yellow_moong', label: 'Yellow Moong Dal', nameEn: 'Yellow Moong Dal', nameHi: 'पीली मूँग दाल' },
+  { id: 'rajma', label: 'Rajma', nameEn: 'Kidney Beans (Rajma)', nameHi: 'राजमा' },
+  { id: 'kabuli_chana', label: 'Kabuli Chana (Chhole)', nameEn: 'Chickpeas (Chhole)', nameHi: 'काबुली चना (छोले)' },
+  { id: 'kala_chana', label: 'Kala Chana', nameEn: 'Brown Chickpeas (Kala Chana)', nameHi: 'काला चना' },
+  { id: 'besan', label: 'Besan (Gram Flour)', nameEn: 'Gram Flour (Besan)', nameHi: 'बेसन' },
+  { id: 'soya_chunks', label: 'Soya Chunks / Nutri', nameEn: 'Soya Chunks', nameHi: 'सोया चंक्स' },
+  { id: 'dahi', label: 'Curd / Dahi', nameEn: 'Curd / Yogurt (Dahi)', nameHi: 'दही' },
+  { id: 'atta', label: 'Wheat Atta', nameEn: 'Whole Wheat Flour (Atta)', nameHi: 'गेहूँ का आटा' },
+  { id: 'poha', label: 'Poha', nameEn: 'Flattened Rice (Poha)', nameHi: 'पोहा' },
+  { id: 'suji', label: 'Suji / Rava', nameEn: 'Semolina (Suji / Rava)', nameHi: 'सूजी / रवा' },
+  { id: 'oats', label: 'Oats', nameEn: 'Rolled Oats', nameHi: 'ओट्स' },
+  { id: 'lobia', label: 'Lobia', nameEn: 'Black Eyed Peas (Lobia)', nameHi: 'लोबिया' },
+  { id: 'red_masoor', label: 'Masoor Dal', nameEn: 'Red Lentils (Masoor Dal)', nameHi: 'मसूर दाल' },
+  { id: 'toor_dal', label: 'Toor Dal', nameEn: 'Pigeon Pea (Toor Dal)', nameHi: 'अरहर / तूर दाल' },
+  { id: 'urad_sabut', label: 'Urad Sabut (Black Lentils)', nameEn: 'Whole Black Gram (Urad Sabut)', nameHi: 'साबुत उड़द दाल' },
 ];
 
 export interface PantryMatchResult {

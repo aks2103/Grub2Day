@@ -7,12 +7,14 @@ interface HowToCookModalProps {
   isOpen: boolean;
   onClose: () => void;
   recipe?: Recipe | null;
+  language?: 'en' | 'hi';
 }
 
 export const HowToCookModal: React.FC<HowToCookModalProps> = ({
   isOpen,
   onClose,
   recipe,
+  language = 'en',
 }) => {
   if (!isOpen || !recipe) return null;
 
@@ -65,7 +67,7 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
                 {totalProtein}g Protein
               </span>
             </div>
-            {recipe.hindiName && (
+            {language === 'hi' && recipe.hindiName && (
               <span className="font-bold text-amber-800 text-xs">
                 {recipe.hindiName}
               </span>
