@@ -77,13 +77,13 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-md rounded-t-[28px] sm:rounded-2xl max-h-[85vh] flex flex-col shadow-2xl border border-orange-100 overflow-hidden"
+        className="bg-white w-full max-w-md sm:max-w-xl md:max-w-2xl rounded-t-[28px] sm:rounded-3xl max-h-[90vh] sm:max-h-[85vh] flex flex-col shadow-2xl border border-orange-100 overflow-hidden"
         role="dialog"
       >
         {/* Grab Handle */}
-        <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mt-2.5 mb-1" />
+        <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mt-2.5 mb-1 sm:hidden" />
 
         {/* Header */}
         <div className="px-5 py-3 border-b border-orange-100 flex items-center justify-between bg-orange-50/50">
@@ -188,7 +188,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                 {veggies.size} Selected
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {STANDARD_VEGGIES.map(v => {
                 const checked = veggies.has(v.id);
                 const displayName = language === 'hi' ? v.nameHi : v.nameEn;
@@ -224,7 +224,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                 {staples.size} In Stock
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {STANDARD_STAPLES.map(s => {
                 const checked = staples.has(s.id);
                 const displayName = language === 'hi' ? s.nameHi : s.nameEn;

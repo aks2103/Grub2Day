@@ -15,7 +15,7 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
   recipesMap,
 }) => {
   return (
-    <div className="py-2.5 max-w-md mx-auto w-full">
+    <div className="py-2.5 max-w-md sm:max-w-xl md:max-w-2xl mx-auto w-full">
       {/* 6-Day Clean iOS Grid Strip */}
       <div className="grid grid-cols-6 gap-1.5 w-full">
         {plans.map((dayPlan, idx) => {

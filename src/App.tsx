@@ -452,8 +452,8 @@ export const App: React.FC = () => {
         onToggleLanguage={handleToggleLanguage}
       />
 
-      {/* Main Container tailored for iPhone 13 (max-w-md, px-3) */}
-      <main className="flex-1 max-w-md w-full mx-auto px-3 pb-[max(var(--sab),28px)] flex flex-col">
+      {/* Main Container Responsive for Mobile, Tablet, and Web */}
+      <main className="flex-1 max-w-md sm:max-w-xl md:max-w-2xl w-full mx-auto px-3 sm:px-4 pb-[max(var(--sab),28px)] flex flex-col">
         {/* Foodie 6-Day Strip (Responsive for iPhone 13) */}
         <FoodieDateStrip
           plans={sixDayPlans}

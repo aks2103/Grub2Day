@@ -22,13 +22,13 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
   const totalProtein = recipe.baseProteinGrams + recipe.addedProteinGrams;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-md rounded-t-[28px] sm:rounded-2xl max-h-[88vh] flex flex-col shadow-2xl border border-orange-100 overflow-hidden"
+        className="bg-white w-full max-w-md sm:max-w-xl md:max-w-2xl rounded-t-[28px] sm:rounded-3xl max-h-[90vh] sm:max-h-[85vh] flex flex-col shadow-2xl border border-orange-100 overflow-hidden"
         role="dialog"
       >
         {/* iOS Grabber Handle */}
-        <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mt-2.5 mb-1" />
+        <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mt-2.5 mb-1 sm:hidden" />
 
         {/* Modal Header */}
         <div className="px-5 py-3 border-b border-orange-100 flex items-center justify-between bg-orange-50/50">

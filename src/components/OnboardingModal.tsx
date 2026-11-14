@@ -121,7 +121,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-orange-100 flex flex-col max-h-[90vh] overflow-hidden"
+        className="bg-white w-full max-w-md sm:max-w-lg rounded-3xl shadow-2xl border border-orange-100 flex flex-col max-h-[90vh] overflow-hidden"
         role="dialog"
       >
         {/* Header with App Branding & Progress Indicator */}

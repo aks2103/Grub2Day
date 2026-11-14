@@ -163,9 +163,9 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
         : 'border-orange-100/90 shadow-2xs hover:border-orange-300'
     } p-3.5 relative overflow-hidden`}>
 
-      {/* Top Slot Header: Clean Single Row (Never Wraps) */}
-      <div className="flex items-center justify-between gap-1.5 mb-2">
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+      {/* Top Slot Header: Clean & Never Clips Cooking Time or Badges */}
+      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-base">{meta.emoji}</span>
           <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${meta.badge}`}>
             {meta.title}
@@ -184,15 +184,15 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
           )}
         </div>
 
-        {/* Nutritional Pills */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-black">
-            <Dumbbell className="w-3 h-3 text-emerald-600" />
-            {totalProtein}g
+        {/* Nutritional & Cooking Time Pills (Always Anchored & Fully Visible) */}
+        <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-black shadow-2xs">
+            <Dumbbell className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+            <span>{totalProtein}g</span>
           </span>
-          <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-400 font-semibold">
-            <Clock className="w-3 h-3" />
-            {recipe.prepTimeMinutes}m
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 text-orange-900 border border-orange-200 text-[11px] font-bold shadow-2xs">
+            <Clock className="w-3 h-3 text-orange-600 flex-shrink-0" />
+            <span>{recipe.prepTimeMinutes || 20}m</span>
           </span>
         </div>
       </div>

@@ -27,9 +27,9 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
 
   return (
     <header className="pt-[max(var(--sat),12px)] pb-2.5 px-3.5 border-b border-orange-100/70 bg-white/95 backdrop-blur-md sticky top-0 z-30 shadow-2xs">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md sm:max-w-xl md:max-w-2xl mx-auto">
         {/* Row 1: Brand Logo + Name & Top Controls */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Brand & Household Name */}
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-lg shadow-sm shadow-orange-500/20 flex-shrink-0">
@@ -41,7 +41,7 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
                   Grub<span className="text-orange-500">2Day</span>
                 </h1>
                 {householdName && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100/80 text-orange-900 border border-orange-200/80 truncate max-w-[130px]">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100/80 text-orange-900 border border-orange-200/80 truncate max-w-[85px] xs:max-w-[110px] sm:max-w-[160px]">
                     {householdName.replace(/wifey/gi, 'Partner')}
                   </span>
                 )}
@@ -55,7 +55,7 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
           </div>
 
           {/* Right Action Icons (Compact & Clean - Never Overflows) */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
             {/* Language Toggle */}
             {onToggleLanguage && (
               <button
@@ -82,11 +82,11 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
             {/* Pantry / Fridge Button */}
             <button
               onClick={onOpenPantry}
-              className="h-8 px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 text-xs font-bold border border-orange-200/70 transition-all flex items-center gap-1 shadow-2xs"
+              className="h-8 px-2 sm:px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 text-xs font-bold border border-orange-200/70 transition-all flex items-center gap-1 shadow-2xs"
               title="What's in the kitchen & fridge"
             >
               <Refrigerator className="w-3.5 h-3.5 text-orange-600" />
-              <span className="text-[11px]">Fridge</span>
+              <span className="text-[11px] hidden xs:inline">Fridge</span>
             </button>
 
             {/* Refresh / Reload Whole Site */}
