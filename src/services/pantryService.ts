@@ -52,6 +52,147 @@ export const STANDARD_STAPLES: PantryItemMeta[] = [
   { id: 'urad_sabut', label: 'Urad Sabut (Black Lentils)', nameEn: 'Black Lentils (Urad Sabut)', nameHi: 'साबुत उड़द दाल' },
 ];
 
+const CUSTOM_PANTRY_STORAGE_KEY = 'grub2day_custom_pantry_items';
+
+export function getCustomPantryItems(): PantryItemMeta[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PANTRY_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomPantryItem(item: PantryItemMeta): void {
+  try {
+    const existing = getCustomPantryItems();
+    const filtered = existing.filter(i => i.id !== item.id);
+    filtered.push(item);
+    localStorage.setItem(CUSTOM_PANTRY_STORAGE_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error('Failed to save custom pantry item', e);
+  }
+}
+
+export function inferIconAndHindi(rawName: string): { icon: string; nameEn: string; nameHi: string; category: 'veggie' | 'staple' } {
+  const clean = rawName.trim();
+  const lower = clean.toLowerCase();
+
+  const iconMap: Record<string, string> = {
+    mushroom: '🍄',
+    mushrooms: '🍄',
+    broccoli: '🥦',
+    corn: '🌽',
+    'sweet corn': '🌽',
+    tofu: '🧈',
+    soya: '🌱',
+    soy: '🌱',
+    cucumber: '🥒',
+    kheera: '🥒',
+    beetroot: '🍠',
+    chukandar: '🍠',
+    garlic: '🧄',
+    lehsun: '🧄',
+    ginger: '🫚',
+    adrak: '🫚',
+    lemon: '🍋',
+    nimbu: '🍋',
+    chilli: '🌶️',
+    mirch: '🌶️',
+    beans: '🫘',
+    cabbage: '🥬',
+    patta_gobhi: '🥬',
+    zucchini: '🥒',
+    capsicum: '🫑',
+    papaya: '🥭',
+    peas: '🫛',
+    curd: '🥛',
+    dahi: '🥛',
+    yogurt: '🥛',
+    cheese: '🧀',
+    butter: '🧈',
+    makhan: '🧈',
+    bread: '🍞',
+    rice: '🍚',
+    chawal: '🍚',
+    pasta: '🍝',
+    oats: '🌾',
+    quinoa: '🌾',
+    avocado: '🥑',
+    spinach: '🥬',
+    palak: '🥬',
+    methi: '🌿',
+    coriander: '🌿',
+    dhania: '🌿',
+    mint: '🌿',
+    pudina: '🌿',
+    egg: '🥚',
+    eggs: '🥚',
+    paneer: '🧀',
+    millet: '🌾',
+    bajra: '🌾',
+    jowar: '🌾',
+    ragi: '🌾',
+    sattu: '🌾',
+    coconut: '🥥',
+  };
+
+  const hiMap: Record<string, string> = {
+    mushroom: 'मशरूम',
+    mushrooms: 'मशरूम',
+    broccoli: 'ब्रोकोली',
+    corn: 'मक्का (कॉर्न)',
+    'sweet corn': 'स्वीट कॉर्न',
+    tofu: 'टोफू',
+    cucumber: 'खीरा',
+    kheera: 'खीरा',
+    beetroot: 'चुकंदर',
+    chukandar: 'चुकंदर',
+    garlic: 'लहसुन',
+    ginger: 'अदरक',
+    lemon: 'नींबू',
+    cabbage: 'पत्ता गोभी',
+    zucchini: 'ज़ुचिनी',
+    beans: 'बीन्स / फलियां',
+    cheese: 'चीज़',
+    butter: 'मक्खन',
+    bread: 'ब्रेड',
+    rice: 'चावल',
+    pasta: 'पास्ता',
+    oats: 'ओट्स',
+    quinoa: 'क्विनोआ',
+    avocado: 'एवोकैडो',
+    mint: 'पुदीना',
+    coriander: 'धनिया',
+    ragi: 'रागी',
+    bajra: 'बाजरा',
+    jowar: 'ज्वार',
+    millet: 'बाजरा / मिलेट',
+    coconut: 'नारियल',
+  };
+
+  let icon = '🥗';
+  for (const [key, ic] of Object.entries(iconMap)) {
+    if (lower.includes(key)) {
+      icon = ic;
+      break;
+    }
+  }
+
+  const isStaple = lower.includes('dal') || lower.includes('rice') || lower.includes('flour') || lower.includes('atta') || lower.includes('oats') || lower.includes('chawal') || lower.includes('grain');
+
+  const nameEn = clean.charAt(0).toUpperCase() + clean.slice(1);
+  const nameHi = hiMap[lower] || clean;
+
+  return {
+    icon,
+    nameEn,
+    nameHi,
+    category: isStaple ? 'staple' : 'veggie',
+  };
+}
+
 export interface PantryMatchResult {
   recipe: Recipe;
   matchScore: number; // 0 to 1
@@ -194,6 +335,11 @@ export function getFriendlyIngredientName(id: string, language: 'en' | 'hi' = 'e
   if (s) {
     const name = language === 'hi' ? s.nameHi : s.nameEn;
     return `${name} 🌾`;
+  }
+  const c = getCustomPantryItems().find(item => item.id.toLowerCase() === clean);
+  if (c) {
+    const name = language === 'hi' ? c.nameHi : c.nameEn;
+    return `${name} ${c.icon}`;
   }
 
   const enMap: Record<string, string> = {
