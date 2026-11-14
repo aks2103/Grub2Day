@@ -151,10 +151,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </p>
               </div>
 
-              {/* Husband Name */}
+              {/* First Partner Name */}
               <div>
                 <label className="text-xs font-black text-slate-800 block mb-1">
-                  Your Name (Husband):
+                  Your Name:
                 </label>
                 <div className="relative">
                   <input
@@ -168,29 +168,29 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
               </div>
 
-              {/* Wife Name */}
+              {/* Second Partner Name */}
               <div>
                 <label className="text-xs font-black text-slate-800 block mb-1">
-                  Wife's Name:
+                  Partner's Name:
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     value={wifeName}
                     onChange={(e) => setWifeName(e.target.value)}
-                    placeholder="e.g. Neha / Wifey"
+                    placeholder="e.g. Partner's name"
                     className="w-full h-10 px-3 rounded-xl border border-orange-200 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
                   />
-                  <span className="absolute right-3 top-2.5 text-xs text-rose-400">❤️</span>
+                  <span className="absolute right-3 top-2.5 text-xs text-rose-400">✨</span>
                 </div>
               </div>
 
-              {/* Wife WhatsApp Number */}
+              {/* Partner WhatsApp Number */}
               <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200/80 space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <span className="text-base">💬</span>
                   <label className="text-xs font-black text-slate-900 block">
-                    Wife's WhatsApp Mobile Number:
+                    Partner's WhatsApp Mobile Number:
                   </label>
                 </div>
                 <div className="relative">
@@ -206,7 +206,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   />
                 </div>
                 <p className="text-[10px] text-slate-500 leading-tight">
-                  Enables 1-tap notifications when you crave a meal, opening her WhatsApp chat directly!
+                  Enables 1-tap dish sharing & cravings directly into their WhatsApp chat!
                 </p>
               </div>
 
@@ -238,10 +238,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="text-center pb-1">
                 <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                  Alok's Body Recomposition Target
+                  Daily Nutrition & Protein Goal
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  High-protein vegetarian meal architecture tailored to your targets.
+                  High-protein balanced meal architecture tailored to your goals.
                 </p>
               </div>
 
@@ -255,7 +255,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   {proteinTarget} <span className="text-base text-emerald-700 font-bold">grams / day</span>
                 </div>
                 <p className="text-[11px] text-slate-600 max-w-xs mx-auto leading-relaxed">
-                  Target for 36M, 78kg, 180cm: hitting 110–125g protein daily ensures fat loss while preserving lean muscle mass.
+                  Target for body recomposition: hitting 110–125g protein daily ensures fat loss while preserving lean muscle mass.
                 </p>
 
                 {/* Preset Pills */}
@@ -276,12 +276,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
               </div>
 
-              {/* Alok's Zero-Cook Boosters Note */}
+              {/* Clean Protein Boosters Note */}
               <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 flex items-start gap-2.5">
                 <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-slate-700 leading-relaxed">
-                  <span className="font-black text-slate-900 block">Zero Extra Cooking for Wife:</span>
-                  The app automatically attaches 2-minute protein boosters (e.g., boiled eggs, paneer cubes, or Greek curd) to normal family meals.
+                  <span className="font-black text-slate-900 block">Zero Extra Cooking Friction:</span>
+                  The app automatically pairs quick 2-minute clean protein boosters (e.g. boiled eggs, paneer cubes, or Greek curd) alongside standard family meals.
                 </div>
               </div>
 

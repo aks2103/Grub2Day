@@ -109,17 +109,17 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
 
         {/* Grid of Groceries & Settings */}
         <div className="p-4 overflow-y-auto space-y-5 flex-1">
-          {/* Wife's WhatsApp & Craving Option */}
+          {/* Direct WhatsApp & Craving Sharing */}
           <div className="bg-gradient-to-r from-rose-50/80 to-amber-50/60 rounded-2xl border border-rose-200/80 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl">💬</span>
                 <div>
                   <h4 className="text-xs font-black text-slate-900 leading-tight">
-                    Direct WhatsApp to Wife
+                    Direct WhatsApp Sharing
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    Send cravings directly into her WhatsApp chat
+                    Send cravings & dish ideas straight to your partner
                   </p>
                 </div>
               </div>
@@ -140,7 +140,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             {showWhatsAppShare ? (
               <div className="space-y-1.5 pt-1 border-t border-rose-200/50">
                 <label className="text-[11px] font-bold text-slate-700 block">
-                  Wife's 10-digit Mobile Number:
+                  Partner's 10-digit Mobile Number:
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -163,13 +163,13 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-500 leading-tight">
-                  When set, tapping "Tell Wifey" on any meal card opens her chat directly in WhatsApp.
+                  When set, tapping "Share Dish" opens their chat directly in WhatsApp.
                 </p>
               </div>
             ) : (
               <div className="pt-1 border-t border-rose-200/50">
                 <p className="text-[11px] text-rose-900 font-semibold bg-white/70 p-2 rounded-xl border border-rose-200/50">
-                  ✨ WhatsApp button is removed from all cards. You will only see the clean <strong>Alok's Craving ❤️</strong> button!
+                  ✨ WhatsApp button is removed from all cards. You will only see the clean <strong>Craving ❤️</strong> button!
                 </p>
               </div>
             )}

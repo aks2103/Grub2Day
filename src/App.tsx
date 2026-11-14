@@ -52,7 +52,7 @@ export const App: React.FC = () => {
   const handleUpdateWifePhone = (phone: string) => {
     setWifePhone(phone);
     localStorage.setItem('wife_whatsapp_phone', phone);
-    showToast("📱 Wife's WhatsApp number saved!");
+    showToast("📱 Partner's WhatsApp number saved!");
   };
 
   const handleToggleWhatsAppShare = (show: boolean) => {
@@ -307,7 +307,7 @@ export const App: React.FC = () => {
               </h2>
               <p className="text-[11px] font-semibold text-amber-800 leading-tight">
                 {selectedDayIndex === 0
-                  ? "Cooked with love, zero mental fatigue for your wife!"
+                  ? "Cooked with love, zero mental fatigue in the kitchen!"
                   : `Day ${selectedDayIndex + 1} of 6 • Guaranteed zero duplicate dishes.`}
               </p>
             </div>

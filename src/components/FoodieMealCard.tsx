@@ -66,7 +66,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
     let targetPhone = wifePhone || localStorage.getItem('wife_whatsapp_phone') || '';
     if (!targetPhone) {
       const entered = window.prompt(
-        "Enter your wife's 10-digit mobile number for 1-tap direct WhatsApp:\n(e.g. 9876543210)\n\nTip: You can hide the WhatsApp button anytime in Pantry (🧊) settings.",
+        "Enter partner's 10-digit mobile number for 1-tap direct WhatsApp sharing:\n(e.g. 9876543210)\n\nTip: You can hide the WhatsApp button anytime in Pantry (🧊) settings.",
         ""
       );
       if (!entered || !entered.trim()) {
@@ -87,7 +87,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
     const slotTitle = meta.title.split('(')[0].trim();
     const appUrl = window.location.origin;
     const text = encodeURIComponent(
-      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️\n\nAlok's Protein add-on: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
+      `Hey! Aaj ${slotTitle} mein *${mealName}* khane ka mann hai 😋❤️\n\nProtein Boost: ${recipe.husbandProteinBooster}\n\nCheck on Grub2Day: ${appUrl}`
     );
     window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
   };
@@ -113,7 +113,7 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
           </span>
         </div>
         <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-          Alok enjoying non-veg outside. Wife has the evening free from heavy cooking! Quick and light bites for the little ones.
+          Enjoying a relaxed meal outside! Kitchen is off tonight ✨ Quick and light bites for the little ones.
         </p>
         {onToggleDiningOut && (
           <button
@@ -208,12 +208,12 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
           </div>
         </div>
         <div className="flex items-start gap-1.5 leading-relaxed text-slate-700 pt-1.5 border-t border-amber-200/50">
-          <span className="font-bold text-slate-900 flex-shrink-0">Alok's Protein: </span>
+          <span className="font-bold text-slate-900 flex-shrink-0">Protein Boost: </span>
           <span className="text-slate-700">{recipe.husbandProteinBooster}</span>
         </div>
       </div>
 
-      {/* Craving & Wife Notification Bar (Direct WhatsApp or Clean Craving-Only) */}
+      {/* Craving & Sharing Bar (Direct WhatsApp or Clean Craving-Only) */}
       {showWhatsAppShare ? (
         <div className="bg-gradient-to-r from-rose-50/80 to-amber-50/80 rounded-xl p-2 border border-rose-200/70 mb-3 flex items-center justify-between gap-2">
           <button
@@ -223,19 +223,19 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
                 ? 'bg-rose-500 text-white shadow-xs'
                 : 'bg-white hover:bg-rose-100 text-rose-700 border border-rose-200'
             }`}
-            title="Mark this as your craving today"
+            title="Mark this as a craving today"
           >
             <Heart className={`w-3.5 h-3.5 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
-            <span className="truncate">{entry.isHusbandCraving ? "Alok's Craving ❤️" : 'Craving this?'}</span>
+            <span className="truncate">{entry.isHusbandCraving ? "Craving This ❤️" : 'Craving this?'}</span>
           </button>
 
           <button
             onClick={handleShareWithWife}
             className="flex-1 py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5"
-            title="Send direct WhatsApp message straight to Wife's chat"
+            title="Send direct WhatsApp message to partner"
           >
             <MessageCircle className="w-3.5 h-3.5" />
-            <span className="truncate">Tell Wifey 💬</span>
+            <span className="truncate">Share Dish 💬</span>
           </button>
         </div>
       ) : (
@@ -247,10 +247,10 @@ export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({
                 ? 'bg-rose-500 text-white shadow-xs ring-2 ring-rose-200'
                 : 'bg-rose-50/70 hover:bg-rose-100 text-rose-700 border border-rose-200/80'
             }`}
-            title="Mark this as your craving today"
+            title="Mark this as a craving today"
           >
             <Heart className={`w-4 h-4 ${entry.isHusbandCraving ? 'fill-white text-white' : 'text-rose-500'}`} />
-            <span>{entry.isHusbandCraving ? "Alok is Craving This Today ❤️" : 'Craving this dish today?'}</span>
+            <span>{entry.isHusbandCraving ? "Marked as Craving Today ❤️" : 'Craving this dish today?'}</span>
           </button>
         </div>
       )}
