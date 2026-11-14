@@ -7,6 +7,7 @@ import { FoodiePantrySheet } from './components/FoodiePantrySheet';
 import { HowToCookModal } from './components/HowToCookModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AuthGuidanceModal } from './components/AuthGuidanceModal';
 
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
@@ -15,7 +16,18 @@ import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFrom
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { getInspirationRecipes, getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from './services/pantryService';
-import { signInWithGoogle, signOutUser, subscribeToAuthState } from './services/authService';
+import { 
+  signInWithGoogle, 
+  signOutUser, 
+  subscribeToAuthState, 
+  formatAuthError, 
+  AuthErrorInfo,
+  getHouseholdProfiles, 
+  saveHouseholdProfiles, 
+  getActiveProfileId, 
+  setActiveProfileId, 
+  HouseholdProfile 
+} from './services/authService';
 import { User } from 'firebase/auth';
 import { TRANSLATIONS } from './i18n/translations';
 import { APP_CONFIG } from './config/env';
@@ -46,6 +58,10 @@ export const App: React.FC = () => {
   const [sixDayPlans, setSixDayPlans] = useState<DayMealPlan[]>([]);
   const [settings, setSettings] = useState<UserHouseholdSettings | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [authErrorInfo, setAuthErrorInfo] = useState<AuthErrorInfo | null>(null);
+  const [householdProfiles, setHouseholdProfiles] = useState<HouseholdProfile[]>(() => getHouseholdProfiles());
+  const [activeProfileId, setActiveProfileIdState] = useState<string>(() => getActiveProfileId());
   const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
@@ -165,6 +181,9 @@ export const App: React.FC = () => {
       setIsLoading(true);
       const database = await getDatabase();
       setDb(database);
+      if (database.setUserId) {
+        database.setUserId(getActiveProfileId());
+      }
 
       const [allRecs, currentPantry, plans, currentSettings] = await Promise.all([
         database.getAllRecipes(),
@@ -245,8 +264,55 @@ export const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Google sign in failed:", err);
-      showToast(err?.message || 'Google Sign-In failed');
+      const formatted = formatAuthError(err);
+      setAuthErrorInfo(formatted);
+      setAuthModalOpen(true);
     }
+  };
+
+  const handleSelectProfile = async (profileId: string) => {
+    setActiveProfileId(profileId);
+    setActiveProfileIdState(profileId);
+    if (db && db.setUserId) {
+      db.setUserId(profileId);
+      try {
+        setIsReplanning(true);
+        const [allRecs, currentPantry, currentSettings] = await Promise.all([
+          db.getAllRecipes(),
+          db.getPantry(),
+          db.getSettings(),
+        ]);
+        setRecipes(allRecs);
+        setPantry(currentPantry);
+        setSettings(currentSettings);
+        if (currentSettings.wifeWhatsApp) {
+          setWifePhone(currentSettings.wifeWhatsApp);
+        }
+        const plans = await getRollingSixDayPlans(db, todayStr);
+        setSixDayPlans(plans);
+        showToast(language === 'hi' ? `${currentSettings.husbandName || profileId} का मेनू सक्रिय` : `Switched to ${currentSettings.husbandName || profileId}'s profile!`);
+      } catch (err) {
+        console.warn("Error switching profile:", err);
+      } finally {
+        setIsReplanning(false);
+      }
+    }
+  };
+
+  const handleAddNewProfile = () => {
+    const name = window.prompt("Enter name for new family member:\n(e.g. Kids, Mom, Roommate)");
+    if (!name || !name.trim()) return;
+    const id = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const newProfile: HouseholdProfile = {
+      id,
+      name: name.trim(),
+      role: 'Family Member',
+      avatarIcon: '🥗',
+    };
+    const updated = [...householdProfiles, newProfile];
+    setHouseholdProfiles(updated);
+    saveHouseholdProfiles(updated);
+    handleSelectProfile(id);
   };
 
   const handleSignOut = async () => {
@@ -537,6 +603,10 @@ export const App: React.FC = () => {
         currentUser={currentUser}
         onSignInWithGoogle={handleSignInWithGoogle}
         onSignOut={handleSignOut}
+        activeProfileId={activeProfileId}
+        householdProfiles={householdProfiles}
+        onSelectProfile={handleSelectProfile}
+        onAddNewProfile={handleAddNewProfile}
       />
 
       {/* Main Container Responsive for Mobile, Tablet, and Web */}
@@ -786,6 +856,18 @@ export const App: React.FC = () => {
         isOpen={onboardingOpen}
         initialSettings={settings}
         onComplete={handleCompleteOnboarding}
+      />
+
+      {/* Firebase Auth Guidance Modal (Explains activation & offers 1-tap household profile) */}
+      <AuthGuidanceModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        errorInfo={authErrorInfo}
+        onContinueOffline={() => {
+          setAuthModalOpen(false);
+          showToast(language === 'hi' ? 'घर के सदस्यों के अलग प्रोफाइल सक्रिय हैं!' : 'Household Profiles active for separate food preferences!');
+        }}
+        language={language}
       />
     </div>
   );
