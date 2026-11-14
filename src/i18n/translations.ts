@@ -115,7 +115,11 @@ export const TRANSLATIONS = {
       south: "South Indian",
       west: "West Indian",
       east: "East Indian",
+      chinese: "Desi Chinese",
+      street_food: "Street Food",
     },
+    chinese: "Chinese",
+    streetFood: "Street Food",
     
     // WhatsApp template
     whatsappShare: (mealName: string, slotTitle: string, needStr: string, booster: string, url: string) =>
@@ -130,6 +134,7 @@ export const TRANSLATIONS = {
     diningOutToast: "🍕 Dining Out tonight! Kitchen is off.",
     fridgeSynced: "🧊 Menu updated based on your fridge items!",
     phoneSavedToast: "📱 Mobile number saved!",
+    shuffledToast: "✨ Shuffled! Fresh dishes prepared for you.",
   },
 
   hi: {
@@ -241,7 +246,11 @@ export const TRANSLATIONS = {
       south: "दक्षिण भारतीय",
       west: "पश्चिम भारतीय",
       east: "पूर्व भारतीय",
+      chinese: "देसी चाइनीज़",
+      street_food: "स्ट्रीट फ़ूड",
     },
+    chinese: "चाइनीज़",
+    streetFood: "स्ट्रीट फ़ूड",
     
     // WhatsApp template
     whatsappShare: (mealName: string, slotTitle: string, needStr: string, booster: string, url: string) =>
@@ -256,5 +265,6 @@ export const TRANSLATIONS = {
     diningOutToast: "🍕 आज रात बाहर खाना! रसोई की छुट्टी।",
     fridgeSynced: "🧊 आपकी रसोई और फ्रिज के अनुसार मेनू अपडेट हो गया!",
     phoneSavedToast: "📱 मोबाइल नंबर सहेजा गया!",
+    shuffledToast: "✨ मेनू नया हो गया! ताज़े और स्वादिष्ट व्यंजन तैयार हैं।",
   }
 };

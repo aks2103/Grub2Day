@@ -6,7 +6,7 @@
 import { IDatabaseProvider } from '../db/dbInterface';
 import { DayMealPlan, Recipe, MealSlot, PantryState } from '../types';
 import { getActiveCooldownReport } from './cooldownService';
-import { rankRecipesByPantry, hasRequiredCoreIngredients } from './pantryService';
+import { rankRecipesByPantry, hasRequiredCoreIngredients, PantryMatchResult } from './pantryService';
 
 export async function getRollingSixDayPlans(
   db: IDatabaseProvider,
@@ -100,6 +100,16 @@ export async function cascadeReplanFutureDays(
   return finalPlans;
 }
 
+function pickDiverseTopRecipe(ranked: PantryMatchResult[]): Recipe | null {
+  if (ranked.length === 0) return null;
+  const topFeasible = ranked[0].hasCoreIngredients;
+  const topScore = ranked[0].matchScore;
+  // Consider candidates matching the top tier to guarantee fresh, randomized dishes on shuffle
+  const topTier = ranked.filter(r => r.hasCoreIngredients === topFeasible && Math.abs(r.matchScore - topScore) < 0.25);
+  const randomChoice = topTier[Math.floor(Math.random() * topTier.length)];
+  return randomChoice ? randomChoice.recipe : ranked[0].recipe;
+}
+
 /**
  * Smart, time-aware pantry re-planner.
  * If user updates fridge at 6 PM, breakfast and lunch are locked. ONLY dinner (and future days)
@@ -143,15 +153,16 @@ export async function replanUpcomingSlotsFromPantry(
       const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
       const pool = feasible.length > 0 ? feasible : eligible;
       const ranked = rankRecipesByPantry(pool, updatedPantry);
-      if (ranked.length > 0) {
+      const chosen = pickDiverseTopRecipe(ranked);
+      if (chosen) {
         todayPlan.breakfast = {
           ...todayPlan.breakfast,
-          recipeId: ranked[0].recipe.id,
+          recipeId: chosen.id,
           isCooked: false,
         };
-        todayUsedIds.add(ranked[0].recipe.id);
-        todayUsedCategories.add(ranked[0].recipe.category);
-        cycleUsedRecipeIds.add(ranked[0].recipe.id);
+        todayUsedIds.add(chosen.id);
+        todayUsedCategories.add(chosen.category);
+        cycleUsedRecipeIds.add(chosen.id);
         affectedSlots.push('breakfast');
       }
     }
@@ -173,15 +184,16 @@ export async function replanUpcomingSlotsFromPantry(
       const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
       const pool = feasible.length > 0 ? feasible : eligible;
       const ranked = rankRecipesByPantry(pool, updatedPantry);
-      if (ranked.length > 0) {
+      const chosen = pickDiverseTopRecipe(ranked);
+      if (chosen) {
         todayPlan.lunch = {
           ...todayPlan.lunch,
-          recipeId: ranked[0].recipe.id,
+          recipeId: chosen.id,
           isCooked: false,
         };
-        todayUsedIds.add(ranked[0].recipe.id);
-        todayUsedCategories.add(ranked[0].recipe.category);
-        cycleUsedRecipeIds.add(ranked[0].recipe.id);
+        todayUsedIds.add(chosen.id);
+        todayUsedCategories.add(chosen.category);
+        cycleUsedRecipeIds.add(chosen.id);
         affectedSlots.push('lunch');
       }
     }
@@ -198,22 +210,21 @@ export async function replanUpcomingSlotsFromPantry(
         !todayUsedIds.has(r.id) &&
         !historyCooldown.bannedRecipeIds.has(r.id)
       );
-      // Strictly filter by core ingredient feasibility FIRST (e.g. 0 lentils in stock -> no dal)
       const feasible = eligible.filter(r => hasRequiredCoreIngredients(r, updatedPantry));
       const basePool = feasible.length > 0 ? feasible : eligible;
 
-      // Prioritize distinct category from lunch if possible within feasible recipes
       const diverse = basePool.filter(r => !todayUsedCategories.has(r.category));
       const pool = diverse.length > 0 ? diverse : basePool;
       const ranked = rankRecipesByPantry(pool, updatedPantry);
-      if (ranked.length > 0) {
+      const chosen = pickDiverseTopRecipe(ranked);
+      if (chosen) {
         todayPlan.dinner = {
           ...todayPlan.dinner,
-          recipeId: ranked[0].recipe.id,
+          recipeId: chosen.id,
           isCooked: false,
         };
-        todayUsedIds.add(ranked[0].recipe.id);
-        cycleUsedRecipeIds.add(ranked[0].recipe.id);
+        todayUsedIds.add(chosen.id);
+        cycleUsedRecipeIds.add(chosen.id);
         affectedSlots.push('dinner');
       }
     }
@@ -285,7 +296,7 @@ function generateSingleDayPlan(
     }
 
     const ranked = rankRecipesByPantry(candidates, pantry);
-    const chosen = ranked.length > 0 ? ranked[0].recipe : null;
+    const chosen = pickDiverseTopRecipe(ranked);
 
     if (chosen) {
       dayUsedIds.add(chosen.id);
@@ -327,4 +338,71 @@ function generateSingleDayPlan(
     },
     updatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Fully shuffles and regenerates the 6-day meal plan with fresh dishes.
+ * Unlocks un-cooked slots and applies fresh randomized selection while strictly
+ * preserving:
+ * - 6-day zero duplicates
+ * - Zero intra-day repeats (breakfast != lunch != dinner)
+ * - Pantry ingredient feasibility
+ * - Respects cooked dishes
+ */
+export async function shuffleAndReplanCycle(
+  db: IDatabaseProvider,
+  currentPlans: DayMealPlan[],
+  todayStr: string,
+  pantry: PantryState
+): Promise<DayMealPlan[]> {
+  const allRecipes = await db.getAllRecipes();
+  const historyCooldown = await getActiveCooldownReport(db, 6, todayStr);
+  const cycleUsedRecipeIds = new Set<string>();
+
+  // Lock cooked recipes first
+  currentPlans.forEach(plan => {
+    if (plan.breakfast.isCooked && plan.breakfast.recipeId) cycleUsedRecipeIds.add(plan.breakfast.recipeId);
+    if (plan.lunch.isCooked && plan.lunch.recipeId) cycleUsedRecipeIds.add(plan.lunch.recipeId);
+    if (plan.dinner.isCooked && plan.dinner.recipeId && !plan.dinner.isDiningOut) cycleUsedRecipeIds.add(plan.dinner.recipeId);
+  });
+
+  const refreshedPlans: DayMealPlan[] = [];
+  const start = new Date(todayStr);
+
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const existing = currentPlans[i];
+
+    // If day exists, only replace slots that are NOT yet cooked
+    const newDayPlan = generateSingleDayPlan(
+      dateStr,
+      allRecipes,
+      pantry,
+      cycleUsedRecipeIds,
+      historyCooldown.bannedRecipeIds
+    );
+
+    if (existing) {
+      if (existing.breakfast.isCooked) {
+        newDayPlan.breakfast = existing.breakfast;
+      }
+      if (existing.lunch.isCooked) {
+        newDayPlan.lunch = existing.lunch;
+      }
+      if (existing.dinner.isCooked || existing.dinner.isDiningOut) {
+        newDayPlan.dinner = existing.dinner;
+      }
+    }
+
+    if (newDayPlan.breakfast.recipeId) cycleUsedRecipeIds.add(newDayPlan.breakfast.recipeId);
+    if (newDayPlan.lunch.recipeId) cycleUsedRecipeIds.add(newDayPlan.lunch.recipeId);
+    if (newDayPlan.dinner.recipeId && !newDayPlan.dinner.isDiningOut) cycleUsedRecipeIds.add(newDayPlan.dinner.recipeId);
+
+    await db.saveDayMealPlan(newDayPlan);
+    refreshedPlans.push(newDayPlan);
+  }
+
+  return refreshedPlans;
 }

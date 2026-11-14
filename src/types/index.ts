@@ -12,9 +12,11 @@ export type DishCategory =
   | 'gravy_sabzi' 
   | 'egg_breakfast' 
   | 'desi_breakfast' 
-  | 'quick_breakfast';
+  | 'quick_breakfast'
+  | 'indo_chinese'
+  | 'street_food';
 
-export type IndianRegion = 'north' | 'south' | 'east' | 'west';
+export type IndianRegion = 'north' | 'south' | 'east' | 'west' | 'chinese' | 'street_food';
 
 export interface Recipe {
   id: string;

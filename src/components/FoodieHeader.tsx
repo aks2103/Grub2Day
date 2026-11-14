@@ -9,6 +9,8 @@ interface FoodieHeaderProps {
   onOpenProfile?: () => void;
   language?: 'en' | 'hi';
   onToggleLanguage?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
@@ -18,6 +20,8 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
   onOpenProfile,
   language = 'en',
   onToggleLanguage,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const t = TRANSLATIONS[language];
   const dateObj = new Date(currentDateStr);
@@ -103,13 +107,13 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
               <span className="text-[11px] hidden xs:inline">{t.fridgeBtn}</span>
             </button>
 
-            {/* Refresh / Reload Whole Site */}
+            {/* Refresh & Shuffle Dishes */}
             <button
-              onClick={() => window.location.reload()}
-              className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-600 border border-slate-200/70 flex items-center justify-center transition-all shadow-2xs"
-              title={t.reloadTitle}
+              onClick={onRefresh || (() => window.location.reload())}
+              className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-orange-50 active:scale-95 text-slate-600 hover:text-orange-700 border border-slate-200/70 hover:border-orange-200 flex items-center justify-center transition-all shadow-2xs cursor-pointer"
+              title={language === 'hi' ? 'मेनू बदलें और नया सुझाव पाएं' : 'Shuffle & refresh meals'}
             >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
+              <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-orange-600' : ''}`} />
             </button>
           </div>
         </div>

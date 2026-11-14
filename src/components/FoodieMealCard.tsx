@@ -45,6 +45,8 @@ const REGION_ICONS: Record<string, string> = {
   south: '🌴',
   west: '🌊',
   east: '🌾',
+  chinese: '🥢',
+  street_food: '🍢',
 };
 
 export const FoodieMealCard: React.FC<FoodieMealCardProps> = ({

@@ -20,6 +20,8 @@ const REGION_OPTIONS: { id: IndianRegion; label: string; icon: string; desc: str
   { id: 'south', label: 'South Indian', icon: '🌴', desc: 'Sambar, Rasam, Idli, Upma, Avial' },
   { id: 'west', label: 'West Indian', icon: '🌊', desc: 'Pav Bhaji, Dal Baati, Sev Tamatar, Poha' },
   { id: 'east', label: 'East Indian', icon: '🌾', desc: 'Litti Chokha, Chholar Dal, Aloo Posto' },
+  { id: 'chinese', label: 'Desi Chinese', icon: '🥢', desc: 'Hakka Noodles, Chilli Paneer, Fried Rice' },
+  { id: 'street_food', label: 'Street Food & Chaat', icon: '🍢', desc: 'Pav Bhaji, Kathi Rolls, Aloo Tikki Chaat' },
 ];
 
 const DISLIKE_CANDIDATES = [
@@ -59,6 +61,35 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [disliked, setDisliked] = useState<Set<string>>(
     new Set(initialSettings?.dislikedIngredients || [])
   );
+  const [customDislikeInput, setCustomDislikeInput] = useState<string>('');
+  const [customDislikeLabels, setCustomDislikeLabels] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('grub2day_custom_disliked_labels');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleAddCustomDislike = () => {
+    const raw = customDislikeInput.trim();
+    if (!raw) return;
+    const lower = raw.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+    
+    // Add to disliked set
+    const nextDisliked = new Set(disliked);
+    nextDisliked.add(lower);
+    setDisliked(nextDisliked);
+
+    // Save as persistent label if not already present
+    if (!customDislikeLabels.includes(raw)) {
+      const updated = [...customDislikeLabels, raw];
+      setCustomDislikeLabels(updated);
+      localStorage.setItem('grub2day_custom_disliked_labels', JSON.stringify(updated));
+    }
+
+    setCustomDislikeInput('');
+  };
   const [userEmail, setUserEmail] = useState<string>(initialSettings?.userEmail || '');
   const [lang, setLang] = useState<'en' | 'hi'>(() => {
     return initialSettings?.language || (localStorage.getItem('grub2day_lang') as 'en' | 'hi') || 'en';
@@ -389,15 +420,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
 
               {/* Dislikes / Exclude */}
-              <div className="pt-2">
-                <label className="text-xs font-black text-slate-800 block mb-1.5">
-                  Any vegetables you dislike or avoid?
+              <div className="pt-2 space-y-2">
+                <label className="text-xs font-black text-slate-800 block">
+                  Any vegetables or ingredients you dislike or avoid?
                 </label>
+                
+                {/* Active and Candidate Labels */}
                 <div className="flex flex-wrap gap-1.5">
                   {DISLIKE_CANDIDATES.map(v => {
                     const isDisliked = disliked.has(v.id);
                     return (
                       <button
+                        type="button"
                         key={v.id}
                         onClick={() => toggleDislike(v.id)}
                         className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
@@ -410,6 +444,50 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </button>
                     );
                   })}
+
+                  {/* Custom persistent labels */}
+                  {customDislikeLabels.map(label => {
+                    const id = label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+                    const isDisliked = disliked.has(id);
+                    return (
+                      <button
+                        type="button"
+                        key={label}
+                        onClick={() => toggleDislike(id)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                          isDisliked
+                            ? 'bg-rose-500 text-white shadow-2xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        {isDisliked ? `✕ Avoid ${label}` : label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Type Option */}
+                <div className="flex gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    value={customDislikeInput}
+                    onChange={e => setCustomDislikeInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomDislike();
+                      }
+                    }}
+                    placeholder="Type other ingredient to avoid (e.g. Mushroom, Garlic)..."
+                    className="flex-1 h-9 px-3 rounded-xl border border-orange-200/90 bg-white text-xs font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomDislike}
+                    className="h-9 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all shadow-2xs flex-shrink-0"
+                  >
+                    + Add
+                  </button>
                 </div>
               </div>
             </div>

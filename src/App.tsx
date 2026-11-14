@@ -10,7 +10,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
 import { DayMealPlan, Recipe, PantryState, MealSlot, UserHouseholdSettings } from './types';
-import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFromPantry } from './services/rollingPlannerService';
+import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFromPantry, shuffleAndReplanCycle } from './services/rollingPlannerService';
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { getInspirationRecipes, getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from './services/pantryService';
@@ -335,7 +335,10 @@ export const App: React.FC = () => {
   };
 
   const handleApplyPantryUpdates = async () => {
-    if (!db || !pantry) return;
+    if (!db) return;
+    const currentPantry = await db.getPantry();
+    if (!currentPantry) return;
+    setPantry(currentPantry);
     isMutatingRef.current = true;
     setIsReplanning(true);
 
@@ -343,10 +346,11 @@ export const App: React.FC = () => {
       db,
       sixDayPlans,
       todayStr,
-      pantry
+      currentPantry
     );
 
     setSixDayPlans(plans);
+    setMenuViewMode('fridge');
     setIsReplanning(false);
     isMutatingRef.current = false;
 
@@ -364,11 +368,33 @@ export const App: React.FC = () => {
   };
 
   // State for cycling through 💡 inspiration recipes per slot
-  const [inspirationOffsets] = useState<{ breakfast: number; lunch: number; dinner: number }>({
+  const [inspirationOffsets, setInspirationOffsets] = useState<{ breakfast: number; lunch: number; dinner: number }>({
     breakfast: 0,
     lunch: 0,
     dinner: 0,
   });
+
+  const handleRefreshShuffle = async () => {
+    if (!db) return;
+    const currentPantry = await db.getPantry() || pantry;
+    if (!currentPantry) return;
+    setIsReplanning(true);
+
+    // 1. Rotate inspiration offsets so Food Inspiration immediately shows fresh recipes
+    setInspirationOffsets(prev => ({
+      breakfast: prev.breakfast + 1,
+      lunch: prev.lunch + 1,
+      dinner: prev.dinner + 1,
+    }));
+
+    // 2. Shuffle and regenerate 6-day plans with fresh diverse dishes
+    const refreshed = await shuffleAndReplanCycle(db, sixDayPlans, todayStr, currentPantry);
+    setSixDayPlans(refreshed);
+    setIsReplanning(false);
+
+    showToast(TRANSLATIONS[language].shuffledToast);
+  };
+
   const [menuViewMode, setMenuViewMode] = useState<'fridge' | 'inspiration'>('fridge');
 
   const selectedPlan = sixDayPlans[selectedDayIndex] || sixDayPlans[0] || null;
@@ -450,6 +476,8 @@ export const App: React.FC = () => {
         onOpenProfile={() => setOnboardingOpen(true)}
         language={language}
         onToggleLanguage={handleToggleLanguage}
+        onRefresh={handleRefreshShuffle}
+        isRefreshing={isReplanning}
       />
 
       {/* Main Container Responsive for Mobile, Tablet, and Web */}

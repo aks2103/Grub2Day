@@ -3,7 +3,7 @@
 // Minimalist, uncluttered UI: Show-as-you-type search + custom item creation with auto-labels
 // ==============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, X, Plus, Sparkles, Check, Trash2 } from 'lucide-react';
 import { PantryState } from '../types';
 import { 
@@ -48,6 +48,13 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
   const [customItems, setCustomItems] = useState<PantryItemMeta[]>(() => getCustomPantryItems());
 
   const t = TRANSLATIONS[language];
+
+  // Sync state whenever pantry or sheet visibility changes
+  useEffect(() => {
+    setVeggies(new Set(pantry.availableVeggies));
+    setStaples(new Set(pantry.staplesInStock));
+    setCustomItems(getCustomPantryItems());
+  }, [pantry, isOpen]);
 
   // Combined library of all known items (Standard Veggies + Standard Staples + Custom Labels)
   const allLibraryItems = useMemo<PantryItemMeta[]>(() => {
@@ -99,9 +106,10 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
 
   // Handle adding an item to the fridge
   const handleAddItem = async (item: PantryItemMeta) => {
-    const isStaple = item.id in STANDARD_STAPLES.map(s => s.id) || 
+    const isStaple = STANDARD_STAPLES.some(s => s.id.toLowerCase() === item.id.toLowerCase()) || 
       item.label.toLowerCase().includes('dal') || 
       item.label.toLowerCase().includes('flour') || 
+      item.label.toLowerCase().includes('atta') || 
       item.label.toLowerCase().includes('rice');
 
     if (isStaple) {
@@ -215,6 +223,17 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
 
   const totalCount = veggies.size + staples.size;
 
+  const handleApply = async () => {
+    await onUpdatePantry({
+      ...pantry,
+      availableVeggies: Array.from(veggies),
+      staplesInStock: Array.from(staples),
+      lastUpdated: new Date().toISOString(),
+    });
+    onApply();
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
@@ -239,10 +258,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              onClick={() => {
-                onApply();
-                onClose();
-              }}
+              onClick={handleApply}
               className="px-4 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black shadow-xs transition-all cursor-pointer"
             >
               {t.applyBtn}
@@ -463,10 +479,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             {t.inFridgeCount(totalCount)}
           </span>
           <button
-            onClick={() => {
-              onApply();
-              onClose();
-            }}
+            onClick={handleApply}
             className="px-6 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white text-xs font-black shadow-md shadow-orange-500/20 transition-all cursor-pointer"
           >
             {t.applyBtn} ✓

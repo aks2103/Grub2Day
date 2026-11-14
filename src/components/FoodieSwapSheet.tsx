@@ -29,7 +29,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
   language = 'en',
 }) => {
   const [search, setSearch] = useState('');
-  const [regionFilter, setRegionFilter] = useState<'all' | 'north' | 'south' | 'west' | 'east'>('all');
+  const [regionFilter, setRegionFilter] = useState<'all' | 'north' | 'south' | 'west' | 'east' | 'chinese' | 'street_food'>('all');
   const [showAll, setShowAll] = useState(false);
   const [inspirationFilter, setInspirationFilter] = useState<'all' | 'fridge' | 'inspiration'>('all');
 
@@ -152,6 +152,8 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                 { id: 'south', label: t.south },
                 { id: 'west', label: t.west },
                 { id: 'east', label: t.east },
+                { id: 'chinese', label: `🥢 ${t.chinese}` },
+                { id: 'street_food', label: `🍢 ${t.streetFood}` },
               ].map(r => (
                 <button
                   key={r.id}
