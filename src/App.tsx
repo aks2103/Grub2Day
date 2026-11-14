@@ -90,9 +90,24 @@ export const App: React.FC = () => {
       setPantry(currentPantry);
       setSixDayPlans(plans);
       setIsLoading(false);
+
+      // Real-time synchronization across devices
+      const unsub = database.subscribeToChanges(async (event) => {
+        if (event.collection === 'meal_plans') {
+          const refreshed = await getRollingSixDayPlans(database, todayStr);
+          setSixDayPlans(refreshed);
+        }
+      });
+
+      return () => {
+        unsub();
+      };
     }
 
-    init();
+    const cleanupPromise = init();
+    return () => {
+      cleanupPromise.then(cleanup => cleanup && cleanup());
+    };
   }, [todayStr]);
 
   // Actions
