@@ -56,9 +56,17 @@ export class LocalNoSqlDb implements IDatabaseProvider {
     const existingSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (!existingSettings) {
       const defaultSettings: UserHouseholdSettings = {
-        cooldownDays: APP_CONFIG.cooldownDays,
+        isOnboarded: false,
+        husbandName: APP_CONFIG.husbandName || 'Alok',
+        wifeName: 'Wifey',
+        wifeWhatsApp: '',
         husbandProteinTarget: APP_CONFIG.proteinTargetGrams,
         calorieTarget: APP_CONFIG.calorieTarget,
+        hasKids: true,
+        preferredRegions: ['north', 'south', 'west', 'east'],
+        dislikedIngredients: [],
+        diningOutDaysPerWeek: 1,
+        cooldownDays: APP_CONFIG.cooldownDays,
         familyMembersNote: 'Parents + 2 young kids (<4 years, <6 months)',
       };
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(defaultSettings));
@@ -182,10 +190,19 @@ export class LocalNoSqlDb implements IDatabaseProvider {
         // fallback
       }
     }
+    const rawPhone = localStorage.getItem('wife_whatsapp_phone') || '';
     return {
-      cooldownDays: APP_CONFIG.cooldownDays,
+      isOnboarded: false,
+      husbandName: APP_CONFIG.husbandName || 'Alok',
+      wifeName: 'Wifey',
+      wifeWhatsApp: rawPhone,
       husbandProteinTarget: APP_CONFIG.proteinTargetGrams,
       calorieTarget: APP_CONFIG.calorieTarget,
+      hasKids: true,
+      preferredRegions: ['north', 'south', 'west', 'east'],
+      dislikedIngredients: [],
+      diningOutDaysPerWeek: 1,
+      cooldownDays: APP_CONFIG.cooldownDays,
       familyMembersNote: 'Parents + 2 young kids (<4 years, <6 months)',
     };
   }

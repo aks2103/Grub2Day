@@ -5,10 +5,11 @@ import { FoodieMealCard } from './components/FoodieMealCard';
 import { FoodieSwapSheet } from './components/FoodieSwapSheet';
 import { FoodiePantrySheet } from './components/FoodiePantrySheet';
 import { HowToCookModal } from './components/HowToCookModal';
+import { OnboardingModal } from './components/OnboardingModal';
 
 import { getDatabase } from './db';
 import { IDatabaseProvider } from './db/dbInterface';
-import { DayMealPlan, Recipe, PantryState, MealSlot } from './types';
+import { DayMealPlan, Recipe, PantryState, MealSlot, UserHouseholdSettings } from './types';
 import { getRollingSixDayPlans, cascadeReplanFutureDays } from './services/rollingPlannerService';
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
@@ -23,6 +24,8 @@ export const App: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [pantry, setPantry] = useState<PantryState | null>(null);
   const [sixDayPlans, setSixDayPlans] = useState<DayMealPlan[]>([]);
+  const [settings, setSettings] = useState<UserHouseholdSettings | null>(null);
+  const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -80,15 +83,23 @@ export const App: React.FC = () => {
       const database = await getDatabase();
       setDb(database);
 
-      const [allRecs, currentPantry, plans] = await Promise.all([
+      const [allRecs, currentPantry, plans, currentSettings] = await Promise.all([
         database.getAllRecipes(),
         database.getPantry(),
         getRollingSixDayPlans(database, todayStr),
+        database.getSettings(),
       ]);
 
       setRecipes(allRecs);
       setPantry(currentPantry);
       setSixDayPlans(plans);
+      setSettings(currentSettings);
+      if (currentSettings.wifeWhatsApp) {
+        setWifePhone(currentSettings.wifeWhatsApp);
+      }
+      if (!currentSettings.isOnboarded) {
+        setOnboardingOpen(true);
+      }
       setIsLoading(false);
 
       // Real-time synchronization across devices
@@ -228,6 +239,16 @@ export const App: React.FC = () => {
     setPantry(updatedPantry);
   };
 
+  const handleCompleteOnboarding = async (newSettings: UserHouseholdSettings) => {
+    if (!db) return;
+    await db.saveSettings(newSettings);
+    setSettings(newSettings);
+    setWifePhone(newSettings.wifeWhatsApp);
+    setOnboardingOpen(false);
+    showToast(`✨ Welcome ${newSettings.husbandName} & ${newSettings.wifeName}! Customizing menu...`);
+    await handleFullReplan();
+  };
+
   if (isLoading || sixDayPlans.length === 0 || !pantry) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
@@ -262,6 +283,8 @@ export const App: React.FC = () => {
         onOpenPantry={() => setPantrySheetOpen(true)}
         onReplanCycle={handleFullReplan}
         isReplanning={isReplanning}
+        householdName={settings?.householdName}
+        onOpenProfile={() => setOnboardingOpen(true)}
       />
 
       {/* Main Container tailored for iPhone 13 (max-w-md, px-4) */}
@@ -374,6 +397,13 @@ export const App: React.FC = () => {
         onUpdateWifePhone={handleUpdateWifePhone}
         showWhatsAppShare={showWhatsAppShare}
         onToggleWhatsAppShare={handleToggleWhatsAppShare}
+      />
+
+      {/* Household Sign-up & Onboarding Modal */}
+      <OnboardingModal
+        isOpen={onboardingOpen}
+        initialSettings={settings}
+        onComplete={handleCompleteOnboarding}
       />
     </div>
   );

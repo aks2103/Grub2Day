@@ -65,8 +65,18 @@ export interface PantryState {
 }
 
 export interface UserHouseholdSettings {
-  cooldownDays: number;
+  isOnboarded: boolean;
+  husbandName: string;
+  wifeName: string;
+  wifeWhatsApp: string;
   husbandProteinTarget: number;
   calorieTarget: number;
+  hasKids: boolean;
+  preferredRegions: IndianRegion[];
+  dislikedIngredients: string[];
+  diningOutDaysPerWeek?: number;
+  cooldownDays: number;
   familyMembersNote: string;
+  userEmail?: string;
+  householdName?: string;
 }

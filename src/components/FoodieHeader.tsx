@@ -1,11 +1,13 @@
 import React from 'react';
-import { Refrigerator, RotateCcw } from 'lucide-react';
+import { Refrigerator, RotateCcw, User } from 'lucide-react';
 
 interface FoodieHeaderProps {
   currentDateStr: string;
   onOpenPantry: () => void;
   onReplanCycle: () => void;
   isReplanning?: boolean;
+  householdName?: string;
+  onOpenProfile?: () => void;
 }
 
 export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
@@ -13,6 +15,8 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
   onOpenPantry,
   onReplanCycle,
   isReplanning = false,
+  householdName,
+  onOpenProfile,
 }) => {
   const dateObj = new Date(currentDateStr);
   const formattedDate = dateObj.toLocaleDateString('en-IN', {
@@ -34,8 +38,8 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
               <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none">
                 Grub<span className="text-orange-500">2Day</span>
               </h1>
-              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                Rasoi
+              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 truncate max-w-[120px]">
+                {householdName || 'Rasoi'}
               </span>
             </div>
             <p className="text-[11px] font-semibold text-amber-700/80 mt-0.5 flex items-center gap-1">
@@ -48,6 +52,17 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
 
         {/* Foodie Action Controls */}
         <div className="flex items-center gap-1.5">
+          {/* Household Profile Button */}
+          {onOpenProfile && (
+            <button
+              onClick={onOpenProfile}
+              className="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100/80 active:scale-95 text-rose-700 border border-rose-200/70 flex items-center justify-center transition-all shadow-2xs"
+              title="Household & Wife Settings"
+            >
+              <User className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {/* Pantry / Fridge Button */}
           <button
             onClick={onOpenPantry}
