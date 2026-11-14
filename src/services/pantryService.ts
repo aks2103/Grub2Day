@@ -171,3 +171,83 @@ export function rankRecipesByPantry(
            (a.recipe.baseProteinGrams + a.recipe.addedProteinGrams);
   });
 }
+
+/**
+ * Returns a clean, human-friendly ingredient name with icon.
+ */
+export function getFriendlyIngredientName(id: string): string {
+  const clean = id.toLowerCase().trim();
+  const v = STANDARD_VEGGIES.find(item => item.id.toLowerCase() === clean);
+  if (v) return `${v.label.split('(')[0].trim()} ${v.icon}`;
+  const s = STANDARD_STAPLES.find(item => item.id.toLowerCase() === clean);
+  if (s) return `${s.label.split('(')[0].trim()} 🌾`;
+
+  const map: Record<string, string> = {
+    eggs: 'Eggs 🥚',
+    milk: 'Milk 🥛',
+    curd: 'Dahi 🥛',
+    dahi: 'Dahi 🥛',
+    bread: 'Bread 🍞',
+    rice: 'Rice 🍚',
+    sev: 'Sev 🍜',
+    coconut: 'Coconut 🥥',
+    coconut_milk: 'Coconut Milk 🥥',
+    sattu: 'Sattu 🌾',
+    multigrain_atta: 'Multigrain Atta 🌾',
+    rice_flour: 'Rice Flour 🌾',
+    whole_green_moong: 'Sabut Moong 🌾',
+    white_peas: 'White Peas 🫛',
+    moth_beans_sprouts: 'Matki Sprouts 🌱',
+    paneer: 'Paneer 🧀',
+  };
+  if (map[clean]) return map[clean];
+  return clean.replace(/_/g, ' ');
+}
+
+/**
+ * Calculates human-friendly missing ingredients for a recipe given current pantry.
+ */
+export function getMissingIngredientsForRecipe(recipe: Recipe, pantry: PantryState): string[] {
+  const availableSet = new Set<string>([
+    ...pantry.availableVeggies.map(v => v.toLowerCase()),
+    ...pantry.staplesInStock.map(s => s.toLowerCase()),
+    'ghee', 'oil', 'jeera', 'garlic', 'ginger', 'hing', 'turmeric', 
+    'coriander', 'salt', 'lemon', 'bread', 'rice', 'milk'
+  ]);
+
+  return recipe.mainIngredients
+    .filter(ing => !availableSet.has(ing.toLowerCase()))
+    .map(ing => getFriendlyIngredientName(ing));
+}
+
+/**
+ * Suggests delicious, popular Pan-Indian recipes for a meal slot that require
+ * items currently NOT in the fridge, so the user never misses out on good food!
+ */
+export function getInspirationRecipes(
+  slot: string,
+  allRecipes: Recipe[],
+  pantry: PantryState,
+  currentRecipeId?: string | null,
+  excludeIds?: Set<string>
+): { recipe: Recipe; missingIngredients: string[] }[] {
+  const candidates = allRecipes.filter(r => 
+    r.suitableSlots.includes(slot as any) &&
+    r.id !== currentRecipeId &&
+    (!excludeIds || !excludeIds.has(r.id))
+  );
+
+  // We want dishes that CANNOT be made from the fridge right now (missing core ingredients)
+  const missingCore = candidates.filter(r => !hasRequiredCoreIngredients(r, pantry));
+  const pool = missingCore.length > 0 ? missingCore : candidates;
+
+  return pool.map(recipe => ({
+    recipe,
+    missingIngredients: getMissingIngredientsForRecipe(recipe, pantry)
+  })).sort((a, b) => {
+    // Sort by high protein first
+    const protA = a.recipe.baseProteinGrams + a.recipe.addedProteinGrams;
+    const protB = b.recipe.baseProteinGrams + b.recipe.addedProteinGrams;
+    return protB - protA;
+  });
+}

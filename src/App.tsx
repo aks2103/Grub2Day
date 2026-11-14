@@ -13,6 +13,7 @@ import { DayMealPlan, Recipe, PantryState, MealSlot, UserHouseholdSettings } fro
 import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFromPantry } from './services/rollingPlannerService';
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
+import { getInspirationRecipes, getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from './services/pantryService';
 import { APP_CONFIG } from './config/env';
 import { Sparkles, Heart } from 'lucide-react';
 
@@ -153,11 +154,16 @@ export const App: React.FC = () => {
     setSwapSheetOpen(true);
   };
 
-  const handleSelectSwapRecipe = async (newRecipeId: string) => {
+  const handleSelectSwapRecipe = async (newRecipeId: string, customSlot?: MealSlot, customDayIndex?: number) => {
     if (!db) return;
     isMutatingRef.current = true;
-    const { dayIndex, slot } = swapTarget;
+    const dayIndex = customDayIndex !== undefined ? customDayIndex : swapTarget.dayIndex;
+    const slot = customSlot !== undefined ? customSlot : swapTarget.slot;
     const targetPlan = sixDayPlans[dayIndex];
+    if (!targetPlan) {
+      isMutatingRef.current = false;
+      return;
+    }
 
     const updatedPlan = await updateMealSlot(db, targetPlan.date, slot, {
       recipeId: newRecipeId,
@@ -280,6 +286,70 @@ export const App: React.FC = () => {
     await handleFullReplan();
   };
 
+  // State for cycling through 💡 inspiration recipes per slot
+  const [inspirationOffsets, setInspirationOffsets] = useState<{ breakfast: number; lunch: number; dinner: number }>({
+    breakfast: 0,
+    lunch: 0,
+    dinner: 0,
+  });
+  const [menuViewMode, setMenuViewMode] = useState<'fridge' | 'inspiration'>('fridge');
+
+  const selectedPlan = sixDayPlans[selectedDayIndex] || sixDayPlans[0] || null;
+
+  const breakfastInspirations = useMemo(() => {
+    if (!pantry || recipes.length === 0 || !selectedPlan) return [];
+    const currentId = selectedPlan.breakfast?.recipeId;
+    return getInspirationRecipes('breakfast', recipes, pantry, currentId);
+  }, [recipes, pantry, selectedPlan?.breakfast?.recipeId]);
+
+  const lunchInspirations = useMemo(() => {
+    if (!pantry || recipes.length === 0 || !selectedPlan) return [];
+    const currentId = selectedPlan.lunch?.recipeId;
+    return getInspirationRecipes('lunch', recipes, pantry, currentId);
+  }, [recipes, pantry, selectedPlan?.lunch?.recipeId]);
+
+  const dinnerInspirations = useMemo(() => {
+    if (!pantry || recipes.length === 0 || !selectedPlan) return [];
+    const currentId = selectedPlan.dinner?.recipeId;
+    return getInspirationRecipes('dinner', recipes, pantry, currentId);
+  }, [recipes, pantry, selectedPlan?.dinner?.recipeId]);
+
+  const currentBreakfastInspiration = useMemo(() => {
+    if (breakfastInspirations.length === 0) return null;
+    return breakfastInspirations[inspirationOffsets.breakfast % breakfastInspirations.length];
+  }, [breakfastInspirations, inspirationOffsets.breakfast]);
+
+  const currentLunchInspiration = useMemo(() => {
+    if (lunchInspirations.length === 0) return null;
+    return lunchInspirations[inspirationOffsets.lunch % lunchInspirations.length];
+  }, [lunchInspirations, inspirationOffsets.lunch]);
+
+  const currentDinnerInspiration = useMemo(() => {
+    if (dinnerInspirations.length === 0) return null;
+    return dinnerInspirations[inspirationOffsets.dinner % dinnerInspirations.length];
+  }, [dinnerInspirations, inspirationOffsets.dinner]);
+
+  const handleShuffleInspiration = (slot: MealSlot) => {
+    setInspirationOffsets(prev => ({
+      ...prev,
+      [slot]: prev[slot] + 1
+    }));
+  };
+
+  const handleSelectInspiration = async (slot: MealSlot, newRecipeId: string) => {
+    if (!db) return;
+    const rec = recipesMap.get(newRecipeId);
+    await handleSelectSwapRecipe(newRecipeId, slot, selectedDayIndex);
+    if (pantry && rec) {
+      const missing = getMissingIngredientsForRecipe(rec, pantry);
+      if (missing.length > 0) {
+        showToast(`💡 Swapped to ${rec.name}! Need to get: ${missing.slice(0, 2).join(', ')} 🛒`);
+      } else {
+        showToast(`💡 Swapped to ${rec.name}!`);
+      }
+    }
+  };
+
   if (isLoading || sixDayPlans.length === 0 || !pantry) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
@@ -292,7 +362,6 @@ export const App: React.FC = () => {
     );
   }
 
-  const selectedPlan = sixDayPlans[selectedDayIndex] || sixDayPlans[0];
   const selectedDateObj = new Date(selectedPlan.date);
   const dayTitle = selectedDayIndex === 0
     ? "Today's Family Meals"
@@ -329,7 +398,7 @@ export const App: React.FC = () => {
         />
 
         {/* Day Headline & Foodie Vibe */}
-        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-2.5 border border-orange-200/70 mb-2.5 flex items-center justify-between shadow-2xs">
+        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 rounded-2xl p-2.5 border border-orange-200/70 mb-2 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-2 min-w-0">
             <Heart className="w-4 h-4 text-orange-500 fill-orange-500/20 flex-shrink-0" />
             <div className="min-w-0">
@@ -348,6 +417,32 @@ export const App: React.FC = () => {
           </span>
         </div>
 
+        {/* View Switcher: Fridge Ready vs 💡 Food Inspiration */}
+        <div className="bg-amber-100/70 p-1 rounded-2xl flex items-center gap-1 mb-2.5 border border-amber-200/80 shadow-2xs">
+          <button
+            onClick={() => setMenuViewMode('fridge')}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+              menuViewMode === 'fridge'
+                ? 'bg-white text-orange-950 shadow-2xs'
+                : 'text-amber-800 hover:text-amber-950'
+            }`}
+          >
+            <span>🧊</span>
+            <span>From Fridge ({pantry?.availableVeggies.length || 0})</span>
+          </button>
+          <button
+            onClick={() => setMenuViewMode('inspiration')}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+              menuViewMode === 'inspiration'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs'
+                : 'text-amber-800 hover:text-amber-950'
+            }`}
+          >
+            <span>💡</span>
+            <span>Food Inspiration (Shop & Cook)</span>
+          </button>
+        </div>
+
         {/* 3 Foodie Meal Cards (Breakfast, Lunch, Dinner) */}
         <div className="space-y-3 flex-1">
           <FoodieMealCard
@@ -362,6 +457,11 @@ export const App: React.FC = () => {
             wifePhone={wifePhone}
             showWhatsAppShare={showWhatsAppShare}
             onUpdateWifePhone={handleUpdateWifePhone}
+            inspiration={currentBreakfastInspiration}
+            onSelectInspiration={(id) => handleSelectInspiration('breakfast', id)}
+            onShuffleInspiration={() => handleShuffleInspiration('breakfast')}
+            isMissingInFridge={pantry && selectedPlan.breakfast.recipeId && recipesMap.get(selectedPlan.breakfast.recipeId) ? !hasRequiredCoreIngredients(recipesMap.get(selectedPlan.breakfast.recipeId)!, pantry) : false}
+            missingIngredients={pantry && selectedPlan.breakfast.recipeId && recipesMap.get(selectedPlan.breakfast.recipeId) ? getMissingIngredientsForRecipe(recipesMap.get(selectedPlan.breakfast.recipeId)!, pantry) : []}
           />
 
           <FoodieMealCard
@@ -376,6 +476,11 @@ export const App: React.FC = () => {
             wifePhone={wifePhone}
             showWhatsAppShare={showWhatsAppShare}
             onUpdateWifePhone={handleUpdateWifePhone}
+            inspiration={currentLunchInspiration}
+            onSelectInspiration={(id) => handleSelectInspiration('lunch', id)}
+            onShuffleInspiration={() => handleShuffleInspiration('lunch')}
+            isMissingInFridge={pantry && selectedPlan.lunch.recipeId && recipesMap.get(selectedPlan.lunch.recipeId) ? !hasRequiredCoreIngredients(recipesMap.get(selectedPlan.lunch.recipeId)!, pantry) : false}
+            missingIngredients={pantry && selectedPlan.lunch.recipeId && recipesMap.get(selectedPlan.lunch.recipeId) ? getMissingIngredientsForRecipe(recipesMap.get(selectedPlan.lunch.recipeId)!, pantry) : []}
           />
 
           <FoodieMealCard
@@ -391,6 +496,11 @@ export const App: React.FC = () => {
             wifePhone={wifePhone}
             showWhatsAppShare={showWhatsAppShare}
             onUpdateWifePhone={handleUpdateWifePhone}
+            inspiration={currentDinnerInspiration}
+            onSelectInspiration={(id) => handleSelectInspiration('dinner', id)}
+            onShuffleInspiration={() => handleShuffleInspiration('dinner')}
+            isMissingInFridge={pantry && selectedPlan.dinner.recipeId && recipesMap.get(selectedPlan.dinner.recipeId) ? !hasRequiredCoreIngredients(recipesMap.get(selectedPlan.dinner.recipeId)!, pantry) : false}
+            missingIngredients={pantry && selectedPlan.dinner.recipeId && recipesMap.get(selectedPlan.dinner.recipeId) ? getMissingIngredientsForRecipe(recipesMap.get(selectedPlan.dinner.recipeId)!, pantry) : []}
           />
         </div>
       </main>
@@ -415,6 +525,7 @@ export const App: React.FC = () => {
         options={swapOptions}
         allAvailableRecipes={allSlotRecipes}
         onSelectRecipe={handleSelectSwapRecipe}
+        pantry={pantry}
       />
 
       {/* Foodie Bottom Sheet: Pantry */}

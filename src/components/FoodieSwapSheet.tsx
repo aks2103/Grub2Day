@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, Check, Sparkles, Dumbbell, Clock } from 'lucide-react';
-import { Recipe, MealSlot } from '../types';
+import { Recipe, MealSlot, PantryState } from '../types';
+import { getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from '../services/pantryService';
 
 interface FoodieSwapSheetProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface FoodieSwapSheetProps {
   options: Recipe[];
   allAvailableRecipes: Recipe[];
   onSelectRecipe: (recipeId: string) => void;
+  pantry?: PantryState | null;
 }
 
 export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
@@ -20,14 +22,24 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
   options,
   allAvailableRecipes,
   onSelectRecipe,
+  pantry,
 }) => {
   const [search, setSearch] = useState('');
   const [regionFilter, setRegionFilter] = useState<'all' | 'north' | 'south' | 'west' | 'east'>('all');
   const [showAll, setShowAll] = useState(false);
+  const [inspirationFilter, setInspirationFilter] = useState<'all' | 'fridge' | 'inspiration'>('all');
 
   if (!isOpen) return null;
 
-  const baseList = showAll || search.trim() !== '' ? allAvailableRecipes : options;
+  let baseList = showAll || search.trim() !== '' ? allAvailableRecipes : options;
+
+  if (pantry) {
+    if (inspirationFilter === 'fridge') {
+      baseList = allAvailableRecipes.filter(r => hasRequiredCoreIngredients(r, pantry));
+    } else if (inspirationFilter === 'inspiration') {
+      baseList = allAvailableRecipes.filter(r => !hasRequiredCoreIngredients(r, pantry));
+    }
+  }
 
   const filtered = baseList.filter(r => {
     const matchesSearch = 
@@ -84,6 +96,44 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
             {showAll ? 'Show Top 5' : 'View All'}
           </button>
         </div>
+
+        {/* Source Toggle: Fridge vs 💡 Inspiration */}
+        {pantry && (
+          <div className="px-4 py-1.5 bg-amber-50/60 border-b border-orange-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => { setInspirationFilter('all'); setShowAll(true); }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors whitespace-nowrap ${
+                inspirationFilter === 'all'
+                  ? 'bg-white text-orange-900 border border-orange-200 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All Options
+            </button>
+            <button
+              onClick={() => { setInspirationFilter('fridge'); setShowAll(true); }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors flex items-center gap-1 whitespace-nowrap ${
+                inspirationFilter === 'fridge'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>🧊</span>
+              <span>In Fridge Only</span>
+            </button>
+            <button
+              onClick={() => { setInspirationFilter('inspiration'); setShowAll(true); }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors flex items-center gap-1 whitespace-nowrap ${
+                inspirationFilter === 'inspiration'
+                  ? 'bg-amber-500 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>💡</span>
+              <span>Inspirations (To Shop)</span>
+            </button>
+          </div>
+        )}
 
         {/* Regional Filter Chips */}
         <div className="px-4 py-2 bg-white border-b border-orange-100 flex gap-1.5 overflow-x-auto no-scrollbar">
@@ -156,7 +206,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                   <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                     {recipe.description}
                   </p>
-                  <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500 flex-wrap">
                     <span className="flex items-center gap-0.5 text-emerald-700 font-extrabold bg-emerald-50 px-1.5 py-0.5 rounded">
                       <Dumbbell className="w-3 h-3" />
                       {recipe.baseProteinGrams + recipe.addedProteinGrams}g Protein
@@ -165,6 +215,17 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                       <Clock className="w-3 h-3 text-slate-400" />
                       {recipe.prepTimeMinutes}m
                     </span>
+                    {pantry && (
+                      hasRequiredCoreIngredients(recipe, pantry) ? (
+                        <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          🧊 In Fridge
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300">
+                          💡 Need: {getMissingIngredientsForRecipe(recipe, pantry).slice(0, 2).join(', ')}
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
 
