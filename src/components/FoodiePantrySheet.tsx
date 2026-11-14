@@ -64,8 +64,6 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
     return Array.from(map.values());
   }, [customItems]);
 
-  if (!isOpen) return null;
-
   // Selected items list with metadata
   const selectedItemsList = useMemo(() => {
     const list: PantryItemMeta[] = [];
@@ -210,6 +208,8 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
     onApply();
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">

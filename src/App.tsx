@@ -838,18 +838,20 @@ export const App: React.FC = () => {
       />
 
       {/* Foodie Bottom Sheet: Pantry */}
-      <FoodiePantrySheet
-        isOpen={pantrySheetOpen}
-        onClose={() => setPantrySheetOpen(false)}
-        pantry={pantry || { id: 'current', availableVeggies: [], staplesInStock: [], lastUpdated: '' }}
-        onUpdatePantry={handleUpdatePantry}
-        onApply={handleApplyPantryUpdates}
-        wifePhone={wifePhone}
-        onUpdateWifePhone={handleUpdateWifePhone}
-        showWhatsAppShare={showWhatsAppShare}
-        onToggleWhatsAppShare={handleToggleWhatsAppShare}
-        language={language}
-      />
+      <ErrorBoundary fallbackTitle={language === 'hi' ? 'फ्रिज मेनू लोड करने में समस्या आई' : 'Unable to open Fridge menu'}>
+        <FoodiePantrySheet
+          isOpen={pantrySheetOpen}
+          onClose={() => setPantrySheetOpen(false)}
+          pantry={pantry || { id: 'current', availableVeggies: [], staplesInStock: [], lastUpdated: '' }}
+          onUpdatePantry={handleUpdatePantry}
+          onApply={handleApplyPantryUpdates}
+          wifePhone={wifePhone}
+          onUpdateWifePhone={handleUpdateWifePhone}
+          showWhatsAppShare={showWhatsAppShare}
+          onToggleWhatsAppShare={handleToggleWhatsAppShare}
+          language={language}
+        />
+      </ErrorBoundary>
 
       {/* Household Sign-up & Onboarding Modal */}
       <OnboardingModal
