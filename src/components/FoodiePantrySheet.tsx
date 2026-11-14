@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { PantryState } from '../types';
 import { STANDARD_VEGGIES, STANDARD_STAPLES } from '../services/pantryService';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface FoodiePantrySheetProps {
   isOpen: boolean;
@@ -31,11 +32,12 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
   const [veggies, setVeggies] = useState<Set<string>>(new Set(pantry.availableVeggies));
   const [staples, setStaples] = useState<Set<string>>(new Set(pantry.staplesInStock));
   const [phoneInput, setPhoneInput] = useState<string>(() => {
-    // Strip leading 91 for easier 10-digit editing if present
     const raw = wifePhone || localStorage.getItem('wife_whatsapp_phone') || '';
     return raw.startsWith('91') && raw.length === 12 ? raw.slice(2) : raw;
   });
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
+
+  const t = TRANSLATIONS[language];
 
   if (!isOpen) return null;
 
@@ -91,11 +93,11 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="text-base">🧊</span>
               <h3 className="font-black text-base text-slate-900">
-                What's in the Kitchen & Fridge?
+                {t.pantryTitle}
               </h3>
             </div>
             <p className="text-xs text-amber-800 font-semibold mt-0.5">
-              Tap what you have; the menu prioritizes recipes using your ingredients
+              {t.pantrySubtitle}
             </p>
           </div>
           <button
@@ -105,7 +107,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             }}
             className="px-3.5 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-black shadow-xs transition-colors"
           >
-            Apply
+            {t.applyBtn}
           </button>
         </div>
 
@@ -118,10 +120,10 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                 <span className="text-xl">💬</span>
                 <div>
                   <h4 className="text-xs font-black text-slate-900 leading-tight">
-                    Direct WhatsApp Sharing
+                    {t.whatsAppSharingTitle}
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    Send cravings & dish ideas straight to your partner
+                    {t.whatsAppSharingSubtitle}
                   </p>
                 </div>
               </div>
@@ -134,7 +136,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                       : 'bg-white text-slate-600 border-slate-300'
                   }`}
                 >
-                  {showWhatsAppShare ? 'Enabled ✓' : 'Hidden (Craving Only)'}
+                  {showWhatsAppShare ? t.enabledBadge : t.hiddenBadge}
                 </button>
               )}
             </div>
@@ -142,7 +144,7 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             {showWhatsAppShare ? (
               <div className="space-y-1.5 pt-1 border-t border-rose-200/50">
                 <label className="text-[11px] font-bold text-slate-700 block">
-                  Partner's 10-digit Mobile Number:
+                  {language === 'hi' ? 'साथी का 10-अंकों का मोबाइल नंबर:' : "Partner's 10-digit Mobile Number:"}
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -161,17 +163,14 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
                     onClick={handleSavePhone}
                     className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black transition-all shadow-2xs flex-shrink-0"
                   >
-                    {savedSuccess ? 'Saved ✓' : 'Save'}
+                    {savedSuccess ? t.phoneSaved : t.savePhoneBtn}
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-500 leading-tight">
-                  When set, tapping "Share Dish" opens their chat directly in WhatsApp.
-                </p>
               </div>
             ) : (
               <div className="pt-1 border-t border-rose-200/50">
                 <p className="text-[11px] text-rose-900 font-semibold bg-white/70 p-2 rounded-xl border border-rose-200/50">
-                  ✨ WhatsApp button is removed from all cards. You will only see the clean <strong>Craving ❤️</strong> button!
+                  {t.whatsAppNotice}
                 </p>
               </div>
             )}
@@ -182,10 +181,10 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <span>🥬</span>
-                <span>Fresh Vegetables & Dairy</span>
+                <span>{t.freshVeggiesAndDairy}</span>
               </span>
               <span className="text-[11px] font-bold text-orange-600">
-                {veggies.size} Selected
+                {veggies.size} {t.selectedCount}
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -218,10 +217,10 @@ export const FoodiePantrySheet: React.FC<FoodiePantrySheetProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <span>🌾</span>
-                <span>{language === 'hi' ? 'दालें व राशन' : 'Dals, Legumes & Staples'}</span>
+                <span>{t.dalsAndStaples}</span>
               </span>
               <span className="text-[11px] font-bold text-emerald-600">
-                {staples.size} In Stock
+                {staples.size} {t.inStockCount}
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

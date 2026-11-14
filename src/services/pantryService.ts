@@ -14,42 +14,42 @@ export interface PantryItemMeta {
 }
 
 export const STANDARD_VEGGIES: PantryItemMeta[] = [
-  { id: 'paneer', label: 'Paneer (पनीर)', nameEn: 'Paneer (Cottage Cheese)', nameHi: 'पनीर', icon: '🧀' },
+  { id: 'paneer', label: 'Paneer (पनीर)', nameEn: 'Paneer', nameHi: 'पनीर', icon: '🧀' },
   { id: 'eggs', label: 'Eggs (अंडे)', nameEn: 'Eggs', nameHi: 'अंडे', icon: '🥚' },
   { id: 'palak', label: 'Palak (पालक)', nameEn: 'Spinach', nameHi: 'पालक', icon: '🥬' },
-  { id: 'bhindi', label: 'Bhindi (भिंडी)', nameEn: 'Okra / Bhindi', nameHi: 'भिंडी', icon: '🥒' },
-  { id: 'cauliflower', label: 'Gobhi (गोभी)', nameEn: 'Cauliflower / Gobhi', nameHi: 'गोभी', icon: '🥦' },
-  { id: 'lauki', label: 'Lauki / Ghia (लौकी)', nameEn: 'Bottle Gourd / Lauki', nameHi: 'लौकी / घिया', icon: '🥒' },
+  { id: 'bhindi', label: 'Bhindi (भिंडी)', nameEn: 'Okra', nameHi: 'भिंडी', icon: '🥒' },
+  { id: 'cauliflower', label: 'Gobhi (गोभी)', nameEn: 'Cauliflower', nameHi: 'गोभी', icon: '🥦' },
+  { id: 'lauki', label: 'Lauki / Ghia (लौकी)', nameEn: 'Bottle Gourd', nameHi: 'लौकी', icon: '🥒' },
   { id: 'green_peas', label: 'Matar (मटर)', nameEn: 'Green Peas', nameHi: 'मटर', icon: '🫛' },
-  { id: 'potato', label: 'Aloo (आलू)', nameEn: 'Potato / Aloo', nameHi: 'आलू', icon: '🥔' },
-  { id: 'onion', label: 'Pyaaz (प्याज़)', nameEn: 'Onion / Pyaaz', nameHi: 'प्याज़', icon: '🧅' },
-  { id: 'tomato', label: 'Tamatar (टमाटर)', nameEn: 'Tomato / Tamatar', nameHi: 'टमाटर', icon: '🍅' },
-  { id: 'capsicum', label: 'Shimla Mirch (शिमला मिर्च)', nameEn: 'Bell Pepper / Capsicum', nameHi: 'शिमला मिर्च', icon: '🫑' },
+  { id: 'potato', label: 'Aloo (आलू)', nameEn: 'Potato', nameHi: 'आलू', icon: '🥔' },
+  { id: 'onion', label: 'Pyaaz (प्याज़)', nameEn: 'Onion', nameHi: 'प्याज़', icon: '🧅' },
+  { id: 'tomato', label: 'Tamatar (टमाटर)', nameEn: 'Tomato', nameHi: 'टमाटर', icon: '🍅' },
+  { id: 'capsicum', label: 'Shimla Mirch (शिमला मिर्च)', nameEn: 'Bell Pepper (Capsicum)', nameHi: 'शिमला मिर्च', icon: '🫑' },
   { id: 'carrots', label: 'Gajar (गाजर)', nameEn: 'Carrots', nameHi: 'गाजर', icon: '🥕' },
-  { id: 'eggplant', label: 'Baingan (बैंगन)', nameEn: 'Eggplant / Baingan', nameHi: 'बैंगन', icon: '🍆' },
-  { id: 'methi_leaves', label: 'Methi (मेथी पत्ता)', nameEn: 'Fenugreek Leaves / Methi', nameHi: 'मेथी पत्ता', icon: '🌿' },
-  { id: 'yellow_pumpkin', label: 'Kaddu / Sitaphal (कद्दू)', nameEn: 'Pumpkin / Kaddu', nameHi: 'कद्दू / सीताफल', icon: '🎃' },
-  { id: 'tori', label: 'Torai (तोरई)', nameEn: 'Ridge Gourd / Torai', nameHi: 'तोरई', icon: '🥒' },
-  { id: 'arbi', label: 'Arbi (अरबी)', nameEn: 'Colocasia / Arbi', nameHi: 'अरबी', icon: '🥔' },
-  { id: 'sprouts', label: 'Sprouts (अंकुरित मूँग/चना)', nameEn: 'Sprouts (Moong / Chana)', nameHi: 'अंकुरित मूँग/चना', icon: '🌱' },
+  { id: 'eggplant', label: 'Baingan (बैंगन)', nameEn: 'Eggplant (Brinjal)', nameHi: 'बैंगन', icon: '🍆' },
+  { id: 'methi_leaves', label: 'Methi (मेथी पत्ता)', nameEn: 'Fenugreek Leaves', nameHi: 'मेथी पत्ता', icon: '🌿' },
+  { id: 'yellow_pumpkin', label: 'Kaddu / Sitaphal (कद्दू)', nameEn: 'Pumpkin', nameHi: 'कद्दू', icon: '🎃' },
+  { id: 'tori', label: 'Torai (तोरई)', nameEn: 'Ridge Gourd', nameHi: 'तोरई', icon: '🥒' },
+  { id: 'arbi', label: 'Arbi (अरबी)', nameEn: 'Colocasia (Arbi)', nameHi: 'अरबी', icon: '🥔' },
+  { id: 'sprouts', label: 'Sprouts (अंकुरित मूँग/चना)', nameEn: 'Sprouts', nameHi: 'अंकुरित मूँग', icon: '🌱' },
 ];
 
 export const STANDARD_STAPLES: PantryItemMeta[] = [
   { id: 'yellow_moong', label: 'Yellow Moong Dal', nameEn: 'Yellow Moong Dal', nameHi: 'पीली मूँग दाल' },
   { id: 'rajma', label: 'Rajma', nameEn: 'Kidney Beans (Rajma)', nameHi: 'राजमा' },
   { id: 'kabuli_chana', label: 'Kabuli Chana (Chhole)', nameEn: 'Chickpeas (Chhole)', nameHi: 'काबुली चना (छोले)' },
-  { id: 'kala_chana', label: 'Kala Chana', nameEn: 'Brown Chickpeas (Kala Chana)', nameHi: 'काला चना' },
+  { id: 'kala_chana', label: 'Kala Chana', nameEn: 'Black Chickpeas', nameHi: 'काला चना' },
   { id: 'besan', label: 'Besan (Gram Flour)', nameEn: 'Gram Flour (Besan)', nameHi: 'बेसन' },
   { id: 'soya_chunks', label: 'Soya Chunks / Nutri', nameEn: 'Soya Chunks', nameHi: 'सोया चंक्स' },
-  { id: 'dahi', label: 'Curd / Dahi', nameEn: 'Curd / Yogurt (Dahi)', nameHi: 'दही' },
-  { id: 'atta', label: 'Wheat Atta', nameEn: 'Whole Wheat Flour (Atta)', nameHi: 'गेहूँ का आटा' },
+  { id: 'dahi', label: 'Curd / Dahi', nameEn: 'Curd / Yogurt', nameHi: 'दही' },
+  { id: 'atta', label: 'Wheat Atta', nameEn: 'Wheat Flour', nameHi: 'गेहूँ का आटा' },
   { id: 'poha', label: 'Poha', nameEn: 'Flattened Rice (Poha)', nameHi: 'पोहा' },
-  { id: 'suji', label: 'Suji / Rava', nameEn: 'Semolina (Suji / Rava)', nameHi: 'सूजी / रवा' },
+  { id: 'suji', label: 'Suji / Rava', nameEn: 'Semolina (Suji)', nameHi: 'सूजी' },
   { id: 'oats', label: 'Oats', nameEn: 'Rolled Oats', nameHi: 'ओट्स' },
-  { id: 'lobia', label: 'Lobia', nameEn: 'Black Eyed Peas (Lobia)', nameHi: 'लोबिया' },
+  { id: 'lobia', label: 'Lobia', nameEn: 'Black-Eyed Peas (Lobia)', nameHi: 'लोबिया' },
   { id: 'red_masoor', label: 'Masoor Dal', nameEn: 'Red Lentils (Masoor Dal)', nameHi: 'मसूर दाल' },
-  { id: 'toor_dal', label: 'Toor Dal', nameEn: 'Pigeon Pea (Toor Dal)', nameHi: 'अरहर / तूर दाल' },
-  { id: 'urad_sabut', label: 'Urad Sabut (Black Lentils)', nameEn: 'Whole Black Gram (Urad Sabut)', nameHi: 'साबुत उड़द दाल' },
+  { id: 'toor_dal', label: 'Toor Dal', nameEn: 'Pigeon Pea (Toor Dal)', nameHi: 'तूर दाल' },
+  { id: 'urad_sabut', label: 'Urad Sabut (Black Lentils)', nameEn: 'Black Lentils (Urad Sabut)', nameHi: 'साबुत उड़द दाल' },
 ];
 
 export interface PantryMatchResult {
@@ -181,33 +181,80 @@ export function rankRecipesByPantry(
 }
 
 /**
- * Returns a clean, human-friendly ingredient name with icon.
+ * Returns a clean, human-friendly ingredient name with icon strictly in the given language.
  */
-export function getFriendlyIngredientName(id: string): string {
+export function getFriendlyIngredientName(id: string, language: 'en' | 'hi' = 'en'): string {
   const clean = id.toLowerCase().trim();
   const v = STANDARD_VEGGIES.find(item => item.id.toLowerCase() === clean);
-  if (v) return `${v.label.split('(')[0].trim()} ${v.icon}`;
+  if (v) {
+    const name = language === 'hi' ? v.nameHi : v.nameEn;
+    return `${name} ${v.icon}`;
+  }
   const s = STANDARD_STAPLES.find(item => item.id.toLowerCase() === clean);
-  if (s) return `${s.label.split('(')[0].trim()} 🌾`;
+  if (s) {
+    const name = language === 'hi' ? s.nameHi : s.nameEn;
+    return `${name} 🌾`;
+  }
 
-  const map: Record<string, string> = {
+  const enMap: Record<string, string> = {
     eggs: 'Eggs 🥚',
     milk: 'Milk 🥛',
-    curd: 'Dahi 🥛',
-    dahi: 'Dahi 🥛',
+    curd: 'Curd / Yogurt 🥛',
+    dahi: 'Curd / Yogurt 🥛',
     bread: 'Bread 🍞',
     rice: 'Rice 🍚',
     sev: 'Sev 🍜',
     coconut: 'Coconut 🥥',
     coconut_milk: 'Coconut Milk 🥥',
-    sattu: 'Sattu 🌾',
-    multigrain_atta: 'Multigrain Atta 🌾',
+    sattu: 'Sattu Flour 🌾',
+    multigrain_atta: 'Multigrain Flour 🌾',
     rice_flour: 'Rice Flour 🌾',
-    whole_green_moong: 'Sabut Moong 🌾',
+    whole_green_moong: 'Whole Moong 🌾',
     white_peas: 'White Peas 🫛',
-    moth_beans_sprouts: 'Matki Sprouts 🌱',
+    moth_beans_sprouts: 'Sprouts 🌱',
     paneer: 'Paneer 🧀',
+    green_chilli: 'Green Chilli 🌶️',
+    ginger: 'Ginger 🫚',
+    garlic: 'Garlic 🧄',
+    coriander: 'Fresh Coriander 🌿',
+    jeera: 'Cumin 🌾',
+    ajwain: 'Carom Seeds 🌾',
+    anardana: 'Pomegranate Seeds 🌾',
+    tea_bag: 'Tea Bag 🍵',
+    ghee: 'Ghee 🧈',
+    kasuri_methi: 'Dry Fenugreek 🌿',
   };
+
+  const hiMap: Record<string, string> = {
+    eggs: 'अंडे 🥚',
+    milk: 'दूध 🥛',
+    curd: 'दही 🥛',
+    dahi: 'दही 🥛',
+    bread: 'ब्रेड 🍞',
+    rice: 'चावल 🍚',
+    sev: 'सेव 🍜',
+    coconut: 'नारियल 🥥',
+    coconut_milk: 'नारियल का दूध 🥥',
+    sattu: 'सत्तू 🌾',
+    multigrain_atta: 'मल्टीग्रेन आटा 🌾',
+    rice_flour: 'चावल का आटा 🌾',
+    whole_green_moong: 'साबुत मूँग 🌾',
+    white_peas: 'सफ़ेद मटर 🫛',
+    moth_beans_sprouts: 'अंकुरित मूँग/चना 🌱',
+    paneer: 'पनीर 🧀',
+    green_chilli: 'हरी मिर्च 🌶️',
+    ginger: 'अदरक 🫚',
+    garlic: 'लहसुन 🧄',
+    coriander: 'ताज़ा धनिया 🌿',
+    jeera: 'जीरा 🌾',
+    ajwain: 'अजवाइन 🌾',
+    anardana: 'अनारदाना 🌾',
+    tea_bag: 'चाय पत्ती 🍵',
+    ghee: 'देसी घी 🧈',
+    kasuri_methi: 'कसूरी मेथी 🌿',
+  };
+
+  const map = language === 'hi' ? hiMap : enMap;
   if (map[clean]) return map[clean];
   return clean.replace(/_/g, ' ');
 }
@@ -215,7 +262,11 @@ export function getFriendlyIngredientName(id: string): string {
 /**
  * Calculates human-friendly missing ingredients for a recipe given current pantry.
  */
-export function getMissingIngredientsForRecipe(recipe: Recipe, pantry: PantryState): string[] {
+export function getMissingIngredientsForRecipe(
+  recipe: Recipe, 
+  pantry: PantryState,
+  language: 'en' | 'hi' = 'en'
+): string[] {
   const availableSet = new Set<string>([
     ...pantry.availableVeggies.map(v => v.toLowerCase()),
     ...pantry.staplesInStock.map(s => s.toLowerCase()),
@@ -225,7 +276,7 @@ export function getMissingIngredientsForRecipe(recipe: Recipe, pantry: PantrySta
 
   return recipe.mainIngredients
     .filter(ing => !availableSet.has(ing.toLowerCase()))
-    .map(ing => getFriendlyIngredientName(ing));
+    .map(ing => getFriendlyIngredientName(ing, language));
 }
 
 /**
@@ -237,7 +288,8 @@ export function getInspirationRecipes(
   allRecipes: Recipe[],
   pantry: PantryState,
   currentRecipeId?: string | null,
-  excludeIds?: Set<string>
+  excludeIds?: Set<string>,
+  language: 'en' | 'hi' = 'en'
 ): { recipe: Recipe; missingIngredients: string[] }[] {
   const candidates = allRecipes.filter(r => 
     r.suitableSlots.includes(slot as any) &&
@@ -251,7 +303,7 @@ export function getInspirationRecipes(
 
   return pool.map(recipe => ({
     recipe,
-    missingIngredients: getMissingIngredientsForRecipe(recipe, pantry)
+    missingIngredients: getMissingIngredientsForRecipe(recipe, pantry, language)
   })).sort((a, b) => {
     // Sort by high protein first
     const protA = a.recipe.baseProteinGrams + a.recipe.addedProteinGrams;

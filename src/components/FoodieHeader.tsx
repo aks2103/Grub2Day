@@ -1,5 +1,6 @@
 import React from 'react';
 import { Refrigerator, RotateCcw, User, Languages } from 'lucide-react';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface FoodieHeaderProps {
   currentDateStr: string;
@@ -18,6 +19,7 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
   language = 'en',
   onToggleLanguage,
 }) => {
+  const t = TRANSLATIONS[language];
   const dateObj = new Date(currentDateStr);
   const formattedDate = dateObj.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
     weekday: 'short',
@@ -42,14 +44,26 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
                 </h1>
                 {householdName && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100/80 text-orange-900 border border-orange-200/80 truncate max-w-[85px] xs:max-w-[110px] sm:max-w-[160px]">
-                    {householdName.replace(/wifey/gi, 'Partner')}
+                    {language === 'hi'
+                      ? householdName
+                          .replace(/['’]s Kitchen/gi, ' की रसोई')
+                          .replace(/['’]s Rasoi/gi, ' की रसोई')
+                          .replace(/Kitchen/gi, 'रसोई')
+                          .replace(/Rasoi/gi, 'रसोई')
+                          .replace(/Wifey/gi, 'साथी')
+                          .replace(/Partner/gi, 'साथी')
+                          .replace(/ & /g, ' और ')
+                      : householdName
+                          .replace(/['’]s Rasoi/gi, "'s Kitchen")
+                          .replace(/Rasoi/gi, 'Kitchen')
+                          .replace(/Wifey/gi, 'Partner')}
                   </span>
                 )}
               </div>
               <p className="text-[11px] font-semibold text-amber-700 mt-0.5 truncate">
                 <span>{formattedDate}</span>
                 <span className="mx-1">•</span>
-                <span>{language === 'hi' ? 'घर का स्वाद, रोज़ नया स्वाद' : 'Fresh Home Meals, Zero Monotony'}</span>
+                <span>{t.subtitle}</span>
               </p>
             </div>
           </div>
@@ -61,10 +75,10 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
               <button
                 onClick={onToggleLanguage}
                 className="h-8 px-2 rounded-xl bg-amber-50 hover:bg-amber-100/90 active:scale-95 text-amber-900 border border-amber-200/80 text-[11px] font-black transition-all flex items-center gap-1 shadow-2xs"
-                title={language === 'hi' ? 'Switch to English' : 'Switch to Hindi (हिंदी)'}
+                title={t.langToggleTitle}
               >
                 <Languages className="w-3.5 h-3.5 text-amber-700" />
-                <span>{language === 'hi' ? 'HI' : 'EN'}</span>
+                <span>{t.langToggleLabel}</span>
               </button>
             )}
 
@@ -73,7 +87,7 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
               <button
                 onClick={onOpenProfile}
                 className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200/70 flex items-center justify-center transition-all shadow-2xs"
-                title="Household Profile & Settings"
+                title={t.profileTitle}
               >
                 <User className="w-3.5 h-3.5" />
               </button>
@@ -83,17 +97,17 @@ export const FoodieHeader: React.FC<FoodieHeaderProps> = ({
             <button
               onClick={onOpenPantry}
               className="h-8 px-2 sm:px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 active:scale-95 text-orange-900 text-xs font-bold border border-orange-200/70 transition-all flex items-center gap-1 shadow-2xs"
-              title="What's in the kitchen & fridge"
+              title={t.pantryTitle}
             >
               <Refrigerator className="w-3.5 h-3.5 text-orange-600" />
-              <span className="text-[11px] hidden xs:inline">Fridge</span>
+              <span className="text-[11px] hidden xs:inline">{t.fridgeBtn}</span>
             </button>
 
             {/* Refresh / Reload Whole Site */}
             <button
               onClick={() => window.location.reload()}
               className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-600 border border-slate-200/70 flex items-center justify-center transition-all shadow-2xs"
-              title="Reload and refresh site"
+              title={t.reloadTitle}
             >
               <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
             </button>

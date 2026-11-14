@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Play, Clock, Dumbbell, Sparkles, ChefHat, CheckCircle2 } from 'lucide-react';
 import { Recipe } from '../types';
 import { getCookingDetails } from '../services/cookingInstructionsService';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface HowToCookModalProps {
   isOpen: boolean;
@@ -18,8 +19,10 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
 }) => {
   if (!isOpen || !recipe) return null;
 
-  const details = getCookingDetails(recipe);
+  const t = TRANSLATIONS[language];
+  const details = getCookingDetails(recipe, language);
   const totalProtein = recipe.baseProteinGrams + recipe.addedProteinGrams;
+  const displayName = language === 'hi' ? (recipe.hindiName || recipe.name) : recipe.name;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -38,10 +41,10 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-base text-slate-900 leading-snug">
-                How to Cook
+                {t.howToCookTitle}
               </h3>
               <p className="text-xs text-amber-800 font-bold">
-                {recipe.name}
+                {displayName}
               </p>
             </div>
           </div>
@@ -60,21 +63,16 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1 font-bold text-slate-700">
                 <Clock className="w-3.5 h-3.5 text-orange-500" />
-                {recipe.prepTimeMinutes} mins
+                {recipe.prepTimeMinutes || 20} {t.minsUnit}
               </span>
               <span className="flex items-center gap-1 font-bold text-emerald-800">
                 <Dumbbell className="w-3.5 h-3.5 text-emerald-600" />
-                {totalProtein}g Protein
+                {totalProtein}{t.proteinUnit}
               </span>
             </div>
-            {language === 'hi' && recipe.hindiName && (
-              <span className="font-bold text-amber-800 text-xs">
-                {recipe.hindiName}
-              </span>
-            )}
           </div>
 
-          {/* WATCH ON YOUTUBE BUTTON (Opens YouTube App on iPhone) */}
+          {/* WATCH ON YOUTUBE BUTTON */}
           <a
             href={details.youtubeUrl}
             target="_blank"
@@ -84,13 +82,13 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
             <div className="w-6 h-6 rounded-full bg-white text-red-600 flex items-center justify-center">
               <Play className="w-3.5 h-3.5 fill-red-600 ml-0.5" />
             </div>
-            <span>Watch Recipe Video on YouTube 📺</span>
+            <span>{t.watchOnYouTube}</span>
           </a>
 
           {/* Ingredients Section */}
           <div>
             <h4 className="font-black text-xs uppercase tracking-wider text-slate-400 mb-2">
-              Key Ingredients
+              {t.ingredientsTitle}
             </h4>
             <div className="flex flex-wrap gap-1.5">
               {details.ingredients.map((ing, i) => (
@@ -107,7 +105,7 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
           {/* Step-by-Step Cooking Guide */}
           <div>
             <h4 className="font-black text-xs uppercase tracking-wider text-slate-400 mb-2">
-              Step-by-Step Instructions
+              {t.stepsTitle}
             </h4>
             <div className="space-y-2">
               {details.steps.map((step, idx) => (
@@ -129,14 +127,14 @@ export const HowToCookModal: React.FC<HowToCookModalProps> = ({
             <div className="flex items-start gap-2">
               <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-amber-900 block text-[11px]">For the Toddler:</span>
+                <span className="font-bold text-amber-900 block text-[11px]">{t.forTheKids}:</span>
                 <span className="text-amber-800 text-[11px] leading-snug">{recipe.kidFriendlyTip}</span>
               </div>
             </div>
             <div className="flex items-start gap-2 pt-2 border-t border-amber-200/60">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-emerald-950 block text-[11px]">Alok's Protein Booster:</span>
+                <span className="font-bold text-emerald-950 block text-[11px]">{t.proteinBoost}:</span>
                 <span className="text-emerald-800 text-[11px] leading-snug">{recipe.husbandProteinBooster}</span>
               </div>
             </div>

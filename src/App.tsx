@@ -14,6 +14,7 @@ import { getRollingSixDayPlans, cascadeReplanFutureDays, replanUpcomingSlotsFrom
 import { getSwapOptions, updateMealSlot } from './services/mealPlannerService';
 import { filterAvailableRecipes, getActiveCooldownReport } from './services/cooldownService';
 import { getInspirationRecipes, getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from './services/pantryService';
+import { TRANSLATIONS } from './i18n/translations';
 import { APP_CONFIG } from './config/env';
 import { Sparkles, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -21,8 +22,8 @@ const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner'];
 
 const SLOT_NAV_CONFIG: { slot: MealSlot; labelEn: string; labelHi: string; emoji: string }[] = [
   { slot: 'breakfast', labelEn: 'Breakfast', labelHi: 'नाश्ता', emoji: '🌅' },
-  { slot: 'lunch', labelEn: 'Lunch', labelHi: 'लंच', emoji: '☀️' },
-  { slot: 'dinner', labelEn: 'Dinner', labelHi: 'डिनर', emoji: '🌙' },
+  { slot: 'lunch', labelEn: 'Lunch', labelHi: 'दोपहर का खाना', emoji: '☀️' },
+  { slot: 'dinner', labelEn: 'Dinner', labelHi: 'रात का खाना', emoji: '🌙' },
 ];
 
 function getSmartInitialSlot(): MealSlot {
@@ -71,16 +72,16 @@ export const App: React.FC = () => {
   const handleUpdateWifePhone = (phone: string) => {
     setWifePhone(phone);
     localStorage.setItem('wife_whatsapp_phone', phone);
-    showToast("📱 Partner's WhatsApp number saved!");
+    showToast(TRANSLATIONS[language].phoneSavedToast);
   };
 
   const handleToggleWhatsAppShare = (show: boolean) => {
     setShowWhatsAppShare(show);
     localStorage.setItem('show_whatsapp_share', String(show));
     if (show) {
-      showToast("💬 WhatsApp sharing enabled");
+      showToast(language === 'hi' ? "💬 व्हाट्सएप संदेश सक्रिय" : "💬 WhatsApp sharing enabled");
     } else {
-      showToast("❤️ WhatsApp removed. Pure Craving mode active!");
+      showToast(language === 'hi' ? "❤️ केवल पसंदीदा मोड सक्रिय" : "❤️ Pure Craving mode active!");
     }
   };
 
@@ -140,7 +141,7 @@ export const App: React.FC = () => {
     if (db && settings) {
       db.saveSettings({ ...settings, language: next }).catch(console.error);
     }
-    showToast(next === 'hi' ? '🌐 भाषा: हिंदी (Hindi)' : '🌐 Language: English (Clean & Concise)');
+    showToast(TRANSLATIONS[next].langSwitched);
   };
 
   const recipesMap = useMemo(() => {
@@ -248,16 +249,20 @@ export const App: React.FC = () => {
     updatedPlans[dayIndex] = updatedPlan;
     setSixDayPlans(updatedPlans);
 
+    const chosenRec = recipesMap.get(newRecipeId);
+    const dishName = chosenRec
+      ? (language === 'hi' ? (chosenRec.hindiName || chosenRec.name) : chosenRec.name)
+      : '';
+
     // Cascading replan: auto-replan future days to guarantee zero repetitions
     if (dayIndex < 5) {
-      showToast("✨ Dish swapped! Future days re-planned for 6-day freshness...");
+      showToast(TRANSLATIONS[language].swappedToast(dishName));
       setIsReplanning(true);
       const refreshedPlans = await cascadeReplanFutureDays(db, updatedPlans, dayIndex, todayStr);
       setSixDayPlans(refreshedPlans);
       setIsReplanning(false);
-      showToast("✅ Next days re-planned! Zero repeats.");
     } else {
-      showToast("✅ Dish updated!");
+      showToast(TRANSLATIONS[language].swappedToast(dishName));
     }
     isMutatingRef.current = false;
   };
@@ -276,7 +281,7 @@ export const App: React.FC = () => {
     setSixDayPlans(updatedPlans);
 
     if (isCooked) {
-      showToast("🍳 Cooked! 6-day cooldown active for this dish.");
+      showToast(TRANSLATIONS[language].cookedToast);
     }
   };
 
@@ -290,9 +295,9 @@ export const App: React.FC = () => {
     setSixDayPlans(updatedPlans);
 
     if (isHusbandCraving) {
-      showToast("❤️ Marked as your craving for today!");
+      showToast(TRANSLATIONS[language].cravingAdded);
     } else {
-      showToast("Craving cleared");
+      showToast(TRANSLATIONS[language].cravingCleared);
     }
   };
 
@@ -309,7 +314,7 @@ export const App: React.FC = () => {
     setSixDayPlans(updatedPlans);
 
     if (isDiningOut) {
-      showToast("🍕 Dining Out tonight! Wife's kitchen is off.");
+      showToast(TRANSLATIONS[language].diningOutToast);
     }
   };
 
@@ -334,7 +339,7 @@ export const App: React.FC = () => {
     isMutatingRef.current = true;
     setIsReplanning(true);
 
-    const { plans, affectedSlots } = await replanUpcomingSlotsFromPantry(
+    const { plans } = await replanUpcomingSlotsFromPantry(
       db,
       sixDayPlans,
       todayStr,
@@ -345,13 +350,7 @@ export const App: React.FC = () => {
     setIsReplanning(false);
     isMutatingRef.current = false;
 
-    if (affectedSlots.includes('dinner') && affectedSlots.length === 1) {
-      showToast("🧊 Tonight's dinner updated based on your fridge items!");
-    } else if (affectedSlots.length > 0) {
-      showToast(`🧊 Upcoming meals updated to use your fridge items!`);
-    } else {
-      showToast("✨ 6-day cycle synced with your fridge!");
-    }
+    showToast(TRANSLATIONS[language].fridgeSynced);
   };
 
   const handleCompleteOnboarding = async (newSettings: UserHouseholdSettings) => {
@@ -421,10 +420,11 @@ export const App: React.FC = () => {
     );
   }
 
+  const t = TRANSLATIONS[language];
   const selectedDateObj = new Date(selectedPlan.date);
   const dayTitle = selectedDayIndex === 0
-    ? "Today's Family Meals"
-    : selectedDateObj.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+    ? t.todayFamilyMeals
+    : selectedDateObj.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
 
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-orange-100">
@@ -432,7 +432,7 @@ export const App: React.FC = () => {
       {isReplanning && !toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 border border-orange-500 animate-in fade-in slide-in-from-top-2">
           <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <span>Updating 6-day cycle...</span>
+          <span>{language === 'hi' ? '6-दिन का चक्र अपडेट हो रहा है...' : 'Updating 6-day cycle...'}</span>
         </div>
       )}
       {toastMessage && (
@@ -460,6 +460,7 @@ export const App: React.FC = () => {
           selectedIndex={selectedDayIndex}
           onSelectIndex={setSelectedDayIndex}
           recipesMap={recipesMap}
+          language={language}
         />
 
         {/* Day Headline & Foodie Vibe */}
@@ -472,13 +473,13 @@ export const App: React.FC = () => {
               </h2>
               <p className="text-[11px] font-semibold text-amber-800 leading-tight truncate">
                 {selectedDayIndex === 0
-                  ? "Cooked with love, zero mental fatigue in the kitchen!"
-                  : `Day ${selectedDayIndex + 1} of 6 • Guaranteed zero duplicate dishes.`}
+                  ? t.cookedWithLove
+                  : t.dayOfCycle(selectedDayIndex + 1)}
               </p>
             </div>
           </div>
           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-orange-800 border border-orange-200 shadow-2xs flex-shrink-0 ml-1.5">
-            {selectedDayIndex === 0 ? 'Today' : `+${selectedDayIndex}d`}
+            {selectedDayIndex === 0 ? t.today : `+${selectedDayIndex}d`}
           </span>
         </div>
 
@@ -493,7 +494,7 @@ export const App: React.FC = () => {
             }`}
           >
             <span>🧊</span>
-            <span>In Fridge</span>
+            <span>{t.inFridge}</span>
           </button>
           <button
             onClick={() => setMenuViewMode('inspiration')}
@@ -504,7 +505,7 @@ export const App: React.FC = () => {
             }`}
           >
             <span>💡</span>
-            <span>Food Inspiration</span>
+            <span>{t.foodInspiration}</span>
           </button>
         </div>
 
@@ -586,7 +587,7 @@ export const App: React.FC = () => {
                 showWhatsAppShare={showWhatsAppShare}
                 onUpdateWifePhone={handleUpdateWifePhone}
                 isMissingInFridge={pantry && displayRecipe ? !hasRequiredCoreIngredients(displayRecipe, pantry) : false}
-                missingIngredients={pantry && displayRecipe ? getMissingIngredientsForRecipe(displayRecipe, pantry) : []}
+                missingIngredients={pantry && displayRecipe ? getMissingIngredientsForRecipe(displayRecipe, pantry, language) : []}
                 language={language}
               />
             );
@@ -605,7 +606,7 @@ export const App: React.FC = () => {
             }`}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-extrabold hidden xs:inline">Prev</span>
+            <span className="text-[11px] font-extrabold hidden xs:inline">{t.prevMeal}</span>
           </button>
 
           {/* Dots / Segment indicators */}
@@ -623,7 +624,7 @@ export const App: React.FC = () => {
               />
             ))}
             <span className="text-[10px] text-slate-400 font-semibold ml-1">
-              {language === 'hi' ? 'स्वाइप करें 👈 👉' : 'Swipe 👈 👉'}
+              {t.swipeHint}
             </span>
           </div>
 
@@ -636,7 +637,7 @@ export const App: React.FC = () => {
                 : 'bg-white border-orange-200 text-orange-950 hover:bg-orange-50 active:scale-95 shadow-2xs'
             }`}
           >
-            <span className="text-[11px] font-extrabold hidden xs:inline">Next</span>
+            <span className="text-[11px] font-extrabold hidden xs:inline">{t.nextMeal}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -657,7 +658,11 @@ export const App: React.FC = () => {
         slot={swapTarget.slot}
         currentRecipeName={
           sixDayPlans[swapTarget.dayIndex]?.[swapTarget.slot]?.recipeId
-            ? recipesMap.get(sixDayPlans[swapTarget.dayIndex][swapTarget.slot].recipeId!)?.name
+            ? (() => {
+                const rec = recipesMap.get(sixDayPlans[swapTarget.dayIndex][swapTarget.slot].recipeId!);
+                if (!rec) return undefined;
+                return language === 'hi' ? (rec.hindiName || rec.name) : rec.name;
+              })()
             : undefined
         }
         options={swapOptions}

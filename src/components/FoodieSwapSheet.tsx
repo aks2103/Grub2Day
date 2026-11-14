@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Search, Check, Dumbbell, Clock } from 'lucide-react';
 import { Recipe, MealSlot, PantryState } from '../types';
 import { getMissingIngredientsForRecipe, hasRequiredCoreIngredients } from '../services/pantryService';
+import { TRANSLATIONS } from '../i18n/translations';
+import { getLocalizedRecipe } from '../i18n/recipeLocalization';
 
 interface FoodieSwapSheetProps {
   isOpen: boolean;
@@ -30,6 +32,8 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
   const [regionFilter, setRegionFilter] = useState<'all' | 'north' | 'south' | 'west' | 'east'>('all');
   const [showAll, setShowAll] = useState(false);
   const [inspirationFilter, setInspirationFilter] = useState<'all' | 'fridge' | 'inspiration'>('all');
+
+  const t = TRANSLATIONS[language];
 
   if (!isOpen) return null;
 
@@ -70,11 +74,11 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-lg">🥘</span>
               <h3 className="font-black text-base text-slate-900 capitalize truncate">
-                Swap {slot} Dish
+                {t.swapSheetTitle(t[slot])}
               </h3>
             </div>
             <p className="text-[11px] text-amber-800 font-bold truncate mt-0.5">
-              Currently: <span className="text-slate-900 font-extrabold">{currentRecipeName || 'None'}</span>
+              {t.currently}: <span className="text-slate-900 font-extrabold">{currentRecipeName || 'None'}</span>
             </p>
           </div>
           <button
@@ -93,7 +97,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search dishes or ingredients (e.g. paneer, dal, potato)..."
+              placeholder={t.searchPlaceholder}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-white border border-orange-200/80 focus:outline-hidden focus:ring-2 focus:ring-orange-400 font-medium text-slate-900"
@@ -113,7 +117,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  All ({allAvailableRecipes.length})
+                  {t.allOptions} ({allAvailableRecipes.length})
                 </button>
                 <button
                   onClick={() => { setInspirationFilter('fridge'); setShowAll(true); }}
@@ -124,7 +128,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                   }`}
                 >
                   <span>🧊</span>
-                  <span>In Fridge</span>
+                  <span>{t.inFridge}</span>
                 </button>
                 <button
                   onClick={() => { setInspirationFilter('inspiration'); setShowAll(true); }}
@@ -135,7 +139,7 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
                   }`}
                 >
                   <span>💡</span>
-                  <span>Inspiration</span>
+                  <span>{t.foodInspiration}</span>
                 </button>
               </div>
             )}
@@ -143,11 +147,11 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
             {/* Region Chips (Flex-Wrap - Never cut off on any device) */}
             <div className="flex items-center gap-1 flex-wrap">
               {[
-                { id: 'all', label: 'All India 🇮🇳' },
-                { id: 'north', label: 'North' },
-                { id: 'south', label: 'South' },
-                { id: 'west', label: 'West' },
-                { id: 'east', label: 'East' },
+                { id: 'all', label: t.allIndia },
+                { id: 'north', label: t.north },
+                { id: 'south', label: t.south },
+                { id: 'west', label: t.west },
+                { id: 'east', label: t.east },
               ].map(r => (
                 <button
                   key={r.id}
@@ -172,62 +176,63 @@ export const FoodieSwapSheet: React.FC<FoodieSwapSheetProps> = ({
         <div className="p-3 overflow-y-auto space-y-2.5 flex-1">
           {filtered.length === 0 ? (
             <div className="text-center py-10 text-slate-400 text-xs">
-              No matching recipes found.
+              {t.noRecipesFound}
             </div>
           ) : (
-            filtered.map(recipe => (
-              <button
-                key={recipe.id}
-                type="button"
-                onClick={() => {
-                  onSelectRecipe(recipe.id);
-                  onClose();
-                }}
-                className="w-full text-left p-3.5 rounded-2xl border border-orange-100 hover:border-orange-300 hover:bg-orange-50/40 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between shadow-2xs bg-white gap-2.5"
-              >
-                <div className="flex-1 min-w-0 pr-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h4 className="text-sm font-black text-slate-900 leading-snug">
-                      {recipe.name}
-                    </h4>
-                    {language === 'hi' && recipe.hindiName && (
-                      <span className="text-[11px] font-bold text-amber-700">
-                        ({recipe.hindiName})
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                    {recipe.description}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500 flex-wrap">
-                    <span className="flex items-center gap-0.5 text-emerald-800 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80">
-                      <Dumbbell className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                      <span>{recipe.baseProteinGrams + recipe.addedProteinGrams}g Protein</span>
-                    </span>
-                    <span className="flex items-center gap-0.5 text-orange-900 font-bold bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200/80">
-                      <Clock className="w-3 h-3 text-orange-600 flex-shrink-0" />
-                      <span>{recipe.prepTimeMinutes || 20}m</span>
-                    </span>
-                    {pantry && (
-                      hasRequiredCoreIngredients(recipe, pantry) ? (
-                        <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300">
-                          🧊 In Fridge
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/70 px-1.5 py-0.5 rounded border border-amber-300">
-                          💡 Need: {getMissingIngredientsForRecipe(recipe, pantry).slice(0, 2).join(', ')}
-                        </span>
-                      )
-                    )}
-                  </div>
-                </div>
+            filtered.map(recipe => {
+              const loc = getLocalizedRecipe(recipe, language);
+              const displayName = loc.name;
+              const missing = pantry ? getMissingIngredientsForRecipe(recipe, pantry, language) : [];
 
-                <div className="px-3.5 py-2 rounded-xl bg-orange-500 text-white text-xs font-black shadow-xs hover:bg-orange-600 transition-colors flex items-center gap-1 flex-shrink-0">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Pick</span>
-                </div>
-              </button>
-            ))
+              return (
+                <button
+                  key={recipe.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectRecipe(recipe.id);
+                    onClose();
+                  }}
+                  className="w-full text-left p-3.5 rounded-2xl border border-orange-100 hover:border-orange-300 hover:bg-orange-50/40 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between shadow-2xs bg-white gap-2.5"
+                >
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="text-sm font-black text-slate-900 leading-snug">
+                        {displayName}
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                      {loc.description}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500 flex-wrap">
+                      <span className="flex items-center gap-0.5 text-emerald-800 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80">
+                        <Dumbbell className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                        <span>{recipe.baseProteinGrams + recipe.addedProteinGrams}{t.proteinUnit}</span>
+                      </span>
+                      <span className="flex items-center gap-0.5 text-orange-900 font-bold bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200/80">
+                        <Clock className="w-3 h-3 text-orange-600 flex-shrink-0" />
+                        <span>{recipe.prepTimeMinutes || 20} {t.minsUnit}</span>
+                      </span>
+                      {pantry && (
+                        hasRequiredCoreIngredients(recipe, pantry) ? (
+                          <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300">
+                            🧊 {t.inFridge}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100/70 px-1.5 py-0.5 rounded border border-amber-300">
+                            💡 {t.needToGet}: {missing.slice(0, 2).join(', ')}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-3.5 py-2 rounded-xl bg-orange-500 text-white text-xs font-black shadow-xs hover:bg-orange-600 transition-colors flex items-center gap-1 flex-shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{t.pickDish}</span>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </div>

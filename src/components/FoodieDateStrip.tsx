@@ -1,11 +1,13 @@
 import React from 'react';
 import { DayMealPlan, Recipe } from '../types';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface FoodieDateStripProps {
   plans: DayMealPlan[];
   selectedIndex: number;
   onSelectIndex: (index: number) => void;
   recipesMap: Map<string, Recipe>;
+  language?: 'en' | 'hi';
 }
 
 export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
@@ -13,7 +15,10 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
   selectedIndex,
   onSelectIndex,
   recipesMap,
+  language = 'en',
 }) => {
+  const t = TRANSLATIONS[language];
+
   return (
     <div className="py-2.5 max-w-md sm:max-w-xl md:max-w-2xl mx-auto w-full">
       {/* 6-Day Clean iOS Grid Strip */}
@@ -24,12 +29,14 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
           const isToday = idx === 0;
 
           const dayLabel = isToday 
-            ? 'Today' 
-            : dateObj.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 3);
+            ? t.today 
+            : t.daysShort[dateObj.getDay()];
           const dateNum = dateObj.getDate();
 
           const lunchRecipe = dayPlan.lunch.recipeId ? recipesMap.get(dayPlan.lunch.recipeId) : null;
-          const dishPreview = lunchRecipe ? lunchRecipe.name.split(' ')[0] : 'Meal';
+          const dishPreview = lunchRecipe 
+            ? (language === 'hi' ? lunchRecipe.hindiName || lunchRecipe.name : lunchRecipe.name.split(' ')[0])
+            : (language === 'hi' ? 'भोजन' : 'Meal');
 
           const allCooked = 
             dayPlan.breakfast.isCooked && 
@@ -46,7 +53,7 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
                   : 'bg-orange-50/50 border-orange-200/60 hover:bg-orange-100/60 text-slate-700'
               }`}
             >
-              {/* Day Label (e.g. Today, Sun, Mon) */}
+              {/* Day Label (e.g. Today / आज, Sun / रवि) */}
               <span className={`text-[10px] font-black uppercase tracking-tight leading-tight ${
                 isSelected ? 'text-amber-100' : 'text-amber-800'
               }`}>
@@ -58,19 +65,19 @@ export const FoodieDateStrip: React.FC<FoodieDateStripProps> = ({
                 {dateNum}
               </span>
 
-              {/* Dish Preview Tag */}
-              <span className={`text-[9px] font-bold truncate max-w-[48px] px-0.5 leading-tight ${
-                isSelected ? 'text-white/95' : 'text-slate-500'
-              }`}>
-                {dishPreview}
-              </span>
-
-              {/* Cooked Status Indicator */}
-              <span className={`w-1.5 h-1.5 rounded-full mt-1 ${
-                allCooked 
-                  ? 'bg-emerald-400 ring-2 ring-white/60' 
-                  : (isSelected ? 'bg-orange-200' : 'bg-transparent')
-              }`} />
+              {/* Dish Preview & Cooked Status Indicator */}
+              <div className="w-full px-0.5 flex items-center justify-center gap-0.5 mt-0.5">
+                <span className={`text-[9px] font-bold truncate max-w-[42px] leading-tight ${
+                  isSelected ? 'text-white' : 'text-slate-500'
+                }`}>
+                  {dishPreview}
+                </span>
+                {allCooked && (
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                    isSelected ? 'bg-white' : 'bg-emerald-500'
+                  }`} />
+                )}
+              </div>
             </button>
           );
         })}
